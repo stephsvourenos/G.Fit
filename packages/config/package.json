@@ -1,0 +1,16 @@
+{
+  "name": "@app/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": { ".": "./src/index.ts", "./env": "./src/env.ts" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check-env": "node --experimental-strip-types src/check-env.ts"
+  },
+  "dependencies": { "zod": "^4" },
+  "devDependencies": { "typescript": "^5", "vitest": "^5", "@types/node": "^22" }
+}

@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# secrets — never commit
+.env
+.env.local
+.env.*.local
+*.pem
+*.p8
+*.key
+
+# build output
+.next/
+out/
+dist/
+build/
+.expo/
+web-build/
+ios/
+android/
+*.tsbuildinfo
+next-env.d.ts
+
+# misc
+.DS_Store
+Thumbs.db
+coverage/
+playwright-report/
+test-results/
+*.log
