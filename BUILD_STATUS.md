@@ -43,8 +43,8 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
 ```
 
 ## Blockers
-- None for Phase 0. Phase 1 needs D1 (GitHub) then the Supabase account.
+- Phase 1 needs the Supabase account (ACCOUNT_SETUP.md §2).
 
 ## Next
-1. You: create the private GitHub repo (ACCOUNT_SETUP.md §1) → I push the code.
+1. ✅ Code is on GitHub: `stephsvourenos/G.Fit` (27 Oct 2026).
 2. Phase 1: Supabase project (I'll walk you through it), migrations, RLS policies + tests, real sign-in.

@@ -11,8 +11,8 @@ Statuses: `NOT NEEDED YET` · `ACTION REQUIRED` · `CONNECTED TEST` · `READY FO
 
 | # | Provider | Why | When | Cost to start | Status |
 |---|---|---|---|---|---|
-| 1 | GitHub | Permanent, private home for the code + history; later auto-deploys the website | **Now (before Phase 1)** | Free | `ACTION REQUIRED` |
-| 2 | Supabase | Database, household sign-in, privacy rules | Phase 1 | Free tier | `NOT NEEDED YET` |
+| 1 | GitHub | Permanent, private home for the code + history; later auto-deploys the website | Done — `stephsvourenos/G.Fit` | Free | `CONNECTED TEST` |
+| 2 | Supabase | Database, household sign-in, privacy rules | **Now (Phase 1)** | Free tier | `ACTION REQUIRED` |
 | 3 | Mux | Video upload, encoding, signed streaming | Phase 2 | Free plan (10 videos, 100k delivered min/month) | `NOT NEEDED YET` |
 | 4 | Stripe | Website subscriptions (test mode first) | Phase 3 | Free to open; fees per live charge only | `NOT NEEDED YET` |
 | 5 | Business bank (existing) | Payout file format + confirmation files | Phase 5 | — | `NOT NEEDED YET` |
@@ -29,7 +29,7 @@ Prices change — I'll re-check each provider's pricing page on the day you sign
 
 ---
 
-## 1. GitHub — `ACTION REQUIRED` (free, ~5 minutes)
+## 1. GitHub — `CONNECTED TEST` (private repo `stephsvourenos/G.Fit`, Claude app installed on this repo only)
 
 **(a) Provider:** GitHub · **(b) Why:** your code currently lives in my secure cloud workspace and as a zip
 download. GitHub gives you a private, backed-up copy with full history that you own, and later lets the website
@@ -49,7 +49,7 @@ permission prompt you approve in your browser; no tokens are pasted into chat.
 
 ---
 
-## 2. Supabase — `NOT NEEDED YET` (Phase 1)
+## 2. Supabase — `ACTION REQUIRED` (Phase 1)
 Free tier: 2 projects, 500 MB database, 50k monthly active users; free projects pause after a week of inactivity
 (fine for development). Pro is US$25/month when you launch (no pausing, more storage, better backups).
 When we start Phase 1 I'll walk you through: sign up at https://supabase.com/dashboard/sign-up → New project →
