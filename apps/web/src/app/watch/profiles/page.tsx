@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { AGE_BAND_LABEL, AGE_BANDS, CATEGORIES, CATEGORY_LABEL, isChildBand, type AgeBand, type CategoryId, type Intensity } from "@app/domain";
 import { Avatar } from "@/components/Avatar";
@@ -20,6 +21,8 @@ export default function ProfilesPage() {
   const [interests, setInterests] = useState<CategoryId[]>([]);
   const [maxIntensity, setMaxIntensity] = useState<Intensity | "">("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [error, setError] = useState<string>();
+  const [saving, setSaving] = useState(false);
 
   return (
     <ParentGate title="Manage profiles">
@@ -37,7 +40,7 @@ export default function ProfilesPage() {
             {confirmDelete === p.id ? (
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-muted">Delete profile and all its activity?</span>
-                <button onClick={() => { h.removeProfile(p.id); setConfirmDelete(null); }} className="rounded-full bg-coral px-3 py-1 font-semibold text-white">Delete</button>
+                <button onClick={async () => { const r = await h.removeProfile(p.id); setConfirmDelete(null); if (!r.ok) setError(r.message); }} className="rounded-full bg-coral px-3 py-1 font-semibold text-white">Delete</button>
                 <button onClick={() => setConfirmDelete(null)} className="px-2 text-muted">Cancel</button>
               </div>
             ) : (
@@ -47,6 +50,10 @@ export default function ProfilesPage() {
         ))}
       </ul>
 
+      {error && <p role="alert" className="mt-4 rounded-xl bg-coral/15 px-4 py-2 text-sm text-coral-2">{error}</p>}
+      {h.profiles.length > 0 && (
+        <Link href="/watch/" className="mt-4 inline-block text-sm text-muted underline">Done — back to “Who’s moving today?”</Link>
+      )}
       {!adding ? (
         <button disabled={h.profiles.length >= MAX_PROFILES} onClick={() => setAdding(true)} className="mt-6 rounded-full bg-paper px-5 py-2.5 font-semibold text-ink disabled:opacity-40">
           + Add a profile
@@ -54,9 +61,13 @@ export default function ProfilesPage() {
       ) : (
         <form
           className="mt-6 space-y-5 rounded-2xl bg-ink-2 p-5 ring-1 ring-white/10"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            h.addProfile({ nickname: nickname.trim(), ageBand, avatar: { emoji, colour }, interests, pinProtected: !isChildBand(ageBand), maxIntensity: maxIntensity || undefined });
+            setSaving(true);
+            setError(undefined);
+            const r = await h.addProfile({ nickname: nickname.trim(), ageBand, avatar: { emoji, colour }, interests, pinProtected: !isChildBand(ageBand), maxIntensity: maxIntensity || undefined });
+            setSaving(false);
+            if (!r.ok) return setError(r.message);
             setAdding(false);
             setNickname("");
             setInterests([]);
@@ -89,7 +100,7 @@ export default function ProfilesPage() {
             </select>
           </label>
           <div className="flex gap-3">
-            <button className="rounded-full bg-coral px-5 py-2.5 font-semibold text-white">Save profile</button>
+            <button disabled={saving} className="rounded-full bg-coral px-5 py-2.5 font-semibold text-white disabled:opacity-60">{saving ? "Saving…" : "Save profile"}</button>
             <button type="button" onClick={() => setAdding(false)} className="px-3 text-muted">Cancel</button>
           </div>
         </form>

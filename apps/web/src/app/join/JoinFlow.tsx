@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { load } from "@/lib/storage";
+import { supabaseConfigured } from "@/lib/supabase";
 
 type Step = "account" | "checkout" | "done";
 const PLANS = {
@@ -27,6 +28,21 @@ export function JoinFlow() {
   }, []);
 
   const chosen = PLANS[plan];
+
+  // With real accounts switched on, joining starts with a real household account.
+  // (Payment is added in Phase 3; until then there's no checkout step.)
+  if (supabaseConfigured) {
+    return (
+      <div className="mx-auto max-w-lg px-4 pb-20 pt-6 sm:px-6">
+        <div className="rounded-3xl bg-white p-6 ring-1 ring-ink/10">
+          <h1 className="font-display text-3xl text-ink">Create your household account</h1>
+          <p className="mt-2 text-ink/65">Set up your account and family profiles now. Membership payments are switched on in a later phase.</p>
+          {ref && <p className="mt-4 rounded-xl bg-mint/10 px-3 py-2 text-sm text-ink">Referred by code <b>{ref.code}</b> — saved for when payments go live.</p>}
+          <Link href="/account/sign-up/" className="mt-6 block rounded-full bg-coral py-3.5 text-center font-semibold text-white hover:bg-coral-2">Continue</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-lg px-4 pb-20 pt-6 sm:px-6">

@@ -13,7 +13,8 @@ export const serverEnvSchema = z.object({
   APP_ENV: z.enum(["local", "test", "staging", "production"]).default("local"),
   // Supabase — Phase 1
   NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: optional,
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: optional,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: optional, // legacy name, still accepted
   SUPABASE_SERVICE_ROLE_KEY: optional,
   // Mux — Phase 2
   MUX_TOKEN_ID: optional,
@@ -42,7 +43,8 @@ export interface IntegrationStatus {
 
 export function integrationStatus(env: ServerEnv): IntegrationStatus {
   const problems: string[] = [];
-  const supabase: IntegrationMode = env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "test" : "mock";
+  const supabase: IntegrationMode =
+    env.NEXT_PUBLIC_SUPABASE_URL && (env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ? "test" : "mock";
   const mux: IntegrationMode = env.MUX_TOKEN_ID && env.MUX_TOKEN_SECRET ? "test" : "mock";
   let stripe: IntegrationMode = "mock";
   if (env.STRIPE_SECRET_KEY) {
@@ -52,7 +54,8 @@ export function integrationStatus(env: ServerEnv): IntegrationStatus {
     }
     if (!env.STRIPE_WEBHOOK_SECRET) problems.push("STRIPE_WEBHOOK_SECRET missing: subscriptions cannot be activated safely.");
   }
-  if (supabase !== "mock" && !env.SUPABASE_SERVICE_ROLE_KEY) {
+  // The service-role key is only needed once server jobs exist (webhooks, royalty runs — Phase 3/4).
+  if (supabase !== "mock" && !env.SUPABASE_SERVICE_ROLE_KEY && (env.STRIPE_SECRET_KEY || env.APP_ENV === "production")) {
     problems.push("SUPABASE_SERVICE_ROLE_KEY missing: server jobs (webhooks, royalty runs) cannot run.");
   }
   if (mux !== "mock" && (!env.MUX_SIGNING_KEY_ID || !env.MUX_SIGNING_PRIVATE_KEY)) {

@@ -11,14 +11,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "16.4.3",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "@app/config": "workspace:*",
     "@app/domain": "workspace:*",
     "@app/mock-data": "workspace:*",
-    "@app/config": "workspace:*",
     "@fontsource-variable/bricolage-grotesque": "^5",
-    "@fontsource-variable/manrope": "^5"
+    "@fontsource-variable/manrope": "^5",
+    "@supabase/supabase-js": "^2.118.0",
+    "next": "16.4.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

@@ -10,10 +10,12 @@ import { Logo } from "./SiteChrome";
 export function ParentGate({ title, children }: { title: string; children: React.ReactNode }) {
   const h = useHousehold();
   const router = useRouter();
+  const settled = h.status === "ready" || h.status === "needs-profiles";
   useEffect(() => {
-    if (h.ready && !h.pinUnlocked) router.replace("/watch/");
-  }, [h.ready, h.pinUnlocked, router]);
-  if (!h.ready || !h.pinUnlocked) return <div className="flex-1" />;
+    if (h.status === "loading") return;
+    if (!settled || !h.pinUnlocked) router.replace("/watch/");
+  }, [h.status, settled, h.pinUnlocked, router]);
+  if (!settled || !h.pinUnlocked) return <div className="flex-1" />;
   return (
     <div className="flex-1">
       <header className="border-b border-white/5">

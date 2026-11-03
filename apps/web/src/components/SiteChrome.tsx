@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { brand } from "@app/config";
 
+const liveAccounts = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+
 export function Logo({ dark = false }: { dark?: boolean }) {
   return (
     <Link href="/" className={`flex items-center gap-2 font-display text-xl font-semibold ${dark ? "text-paper" : "text-ink"}`}>
@@ -22,7 +24,7 @@ export function SiteNav() {
         <Link href="/#pricing" className="hidden px-2 text-ink/70 hover:text-ink sm:inline">Pricing</Link>
         <Link href="/creator/" className="hidden px-2 text-ink/70 hover:text-ink sm:inline">Creators</Link>
         <Link href="/admin/" className="hidden px-2 text-ink/70 hover:text-ink md:inline">Admin demo</Link>
-        <Link href="/watch/" className="rounded-full px-4 py-2 text-ink ring-1 ring-ink/15 hover:ring-ink/40">Sign in</Link>
+        <Link href={liveAccounts ? "/account/sign-in/" : "/watch/"} className="rounded-full px-4 py-2 text-ink ring-1 ring-ink/15 hover:ring-ink/40">Sign in</Link>
       </nav>
     </header>
   );
