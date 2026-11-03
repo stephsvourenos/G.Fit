@@ -17,7 +17,7 @@ export function WorkoutDetail({ id }: { id: string }) {
 }
 
 const DENIAL_TEXT = {
-  "no-entitlement": "Membership inactive — a parent can renew in Family account.",
+  "no-entitlement": "Videos unlock once your family membership is active.",
   "age-restricted": "This one isn’t available on this profile.",
   "pin-required": "A parent PIN is needed for this profile.",
   "not-published": "This workout isn’t available yet.",

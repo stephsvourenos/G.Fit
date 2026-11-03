@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type { PinResult } from "@/lib/household-types";
 
@@ -9,21 +9,33 @@ export function PinPad({ title, onSubmit, onCancel, hint }: { title: string; onS
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | false>(false);
   const [busy, setBusy] = useState(false);
+  // Keep the digits in a ref too, so fast taps never read a stale value.
+  const digits = useRef("");
+  const busyRef = useRef(false);
 
   async function press(d: string) {
-    if (pin.length >= 4 || busy) return;
-    const next = pin + d;
+    if (digits.current.length >= 4 || busyRef.current) return;
+    const next = digits.current + d;
+    digits.current = next;
     setPin(next);
     setError(false);
     if (next.length === 4) {
+      busyRef.current = true;
       setBusy(true);
       const res = await onSubmit(next);
+      busyRef.current = false;
       setBusy(false);
       if (!res.ok) {
         setError(res.message ?? "That PIN didn’t match. Try again.");
+        digits.current = "";
         setPin("");
       }
     }
+  }
+
+  function backspace() {
+    digits.current = digits.current.slice(0, -1);
+    setPin(digits.current);
   }
 
   return (
@@ -46,7 +58,7 @@ export function PinPad({ title, onSubmit, onCancel, hint }: { title: string; onS
           ))}
           <button onClick={onCancel} className="h-14 rounded-2xl text-sm text-muted hover:text-paper">Cancel</button>
           <button onClick={() => press("0")} className="h-14 rounded-2xl bg-ink-3 text-xl font-semibold hover:bg-line active:scale-95 transition">0</button>
-          <button onClick={() => setPin(pin.slice(0, -1))} className="h-14 rounded-2xl text-sm text-muted hover:text-paper" aria-label="Delete digit">⌫</button>
+          <button onClick={backspace} className="h-14 rounded-2xl text-sm text-muted hover:text-paper" aria-label="Delete digit">⌫</button>
         </div>
         <p className="mt-4 text-center text-xs text-muted">Forgot it? The account owner can reset the PIN by email.</p>
       </div>

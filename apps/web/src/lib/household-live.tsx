@@ -74,6 +74,8 @@ export function LiveHouseholdProvider({ children }: { children: React.ReactNode 
   const [done, setDone] = useState<Record<string, Array<{ workoutId: string; day: string }>>>({});
   const slugToUuid = useRef(new Map<string, string>());
   const uuidToApp = useRef(new Map<string, string>());
+  // Device memory (open profile, PIN unlock) is only written after it has been read back.
+  const restored = useRef(false);
 
   const uid = session?.user.id;
 
@@ -164,12 +166,14 @@ export function LiveHouseholdProvider({ children }: { children: React.ReactNode 
     const dev = readDevice(userId);
     setActiveId(list.some((x) => x.id === dev.activeId) ? dev.activeId : undefined);
     setUnlockedUntil(dev.unlockedUntil ?? 0);
+    restored.current = true;
     setStatus(!pinSet.data ? "needs-pin" : list.length === 0 ? "needs-profiles" : "ready");
   }, [db, session]);
 
   useEffect(() => {
     if (session === undefined) return;
     if (session === null) {
+      restored.current = false;
       /* eslint-disable react-hooks/set-state-in-effect */
       setStatus("signed-out");
       setProfiles([]);
@@ -184,7 +188,7 @@ export function LiveHouseholdProvider({ children }: { children: React.ReactNode 
   }, [session, load]);
 
   useEffect(() => {
-    if (uid) writeDevice(uid, { activeId, unlockedUntil });
+    if (uid && restored.current) writeDevice(uid, { activeId, unlockedUntil });
   }, [uid, activeId, unlockedUntil]);
 
   // ---- actions -------------------------------------------------------

@@ -50,7 +50,17 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
   append-only ledger, profile deletion removes activity
 - Supabase security advisor: no warnings needing action. Its notes are intentional: PIN and billing tables have no
   client access at all, and the PIN/export functions are the deliberate, checked way in
-- Still to do in Phase 1: connect the web app's sign-in and profile screens to Supabase, then retire the mock household
+- **Real accounts in the web app (3 Nov 2026):** sign up with email confirmation, sign in, forgot/reset password,
+  first-run parent PIN setup, profiles, watch progress, favourites, completions, data export, delete household data,
+  sign out. Uses only the public URL + publishable key; the database's privacy rules protect everything.
+- **Live browser test against the real database: all 17 steps pass** (`e2e/live-journey.js`): sign-in redirect,
+  wrong password, PIN setup (weak PIN refused), adding adult + child profiles, child sees only age-appropriate
+  workouts, videos locked until membership, favourite saved, session survives reload, adult profile needs PIN,
+  wrong PIN refused by the server, export, sign out, delete household data
+- Mock mode still works when no Supabase keys are configured
+- Waiting on approval: `supabase/migrations/20261103021500_app_journey_test.sql` (database-side journey test)
+- Still to do in Phase 1: closing the login itself (needs a server function), admin & creator logins, a hosted
+  preview URL, confirmation-email wording/branding
 
 ## Blockers
 - Phase 1 needs the Supabase account (ACCOUNT_SETUP.md §2).

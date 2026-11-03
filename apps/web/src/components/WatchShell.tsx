@@ -55,7 +55,9 @@ export function WatchShell({ children }: { children: React.ReactNode }) {
       </header>
       {!access && (
         <div className="bg-coral px-4 py-3 text-center text-sm font-semibold text-white">
-          Your membership has ended, so videos are paused. A parent can renew in{" "}
+          {h.entitlement
+            ? "Your membership has ended, so videos are paused. A parent can renew in "
+            : "Browse everything now — videos unlock once your family membership starts. A parent can check in "}
           <Link href="/watch/account/" className="underline">Family account</Link>.
         </div>
       )}

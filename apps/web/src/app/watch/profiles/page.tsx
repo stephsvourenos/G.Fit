@@ -52,7 +52,7 @@ export default function ProfilesPage() {
 
       {error && <p role="alert" className="mt-4 rounded-xl bg-coral/15 px-4 py-2 text-sm text-coral-2">{error}</p>}
       {h.profiles.length > 0 && (
-        <Link href="/watch/" className="mt-4 inline-block text-sm text-muted underline">Done — back to “Who’s moving today?”</Link>
+        <Link href="/watch/" className="mt-4 block w-fit text-sm text-muted underline">Done — back to “Who’s moving today?”</Link>
       )}
       {!adding ? (
         <button disabled={h.profiles.length >= MAX_PROFILES} onClick={() => setAdding(true)} className="mt-6 rounded-full bg-paper px-5 py-2.5 font-semibold text-ink disabled:opacity-40">
