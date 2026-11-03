@@ -75,7 +75,7 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
     creator "Junior Coach Pip"), all @gfit.test
 - Before launch (noted for Phase 6): turn on Supabase leaked-password protection (paid plan feature), add a
   transactional email provider, admin screens to invite staff/creator logins
-- Still to do in Phase 1: closing the login itself (needs a server function), admin & creator logins, confirmation-email wording/branding
+- Phase 1 is complete once the email templates are pasted into Supabase. Next: Phase 2 (Mux video).
 
 ## Blockers
 - Phase 1 needs the Supabase account (ACCOUNT_SETUP.md §2).
