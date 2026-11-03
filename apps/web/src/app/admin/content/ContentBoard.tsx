@@ -1,9 +1,11 @@
 "use client";
 
-import { Fragment, useState } from "react";
-import { AGE_BAND_LABEL, canPublish, CATEGORY_LABEL, CONTENT_STATES, formatDuration, type ContentState, type Workout } from "@app/domain";
-import { instructors, workouts as seed } from "@app/mock-data";
+import { Fragment, useEffect, useState } from "react";
+import { AGE_BAND_LABEL, canPublish, CATEGORY_LABEL, CONTENT_STATES, formatDuration, type ContentState, type Instructor, type Workout } from "@app/domain";
+import { instructors as seedInstructors, workouts as seed } from "@app/mock-data";
 import { Badge, Table } from "@/components/AdminShell";
+import { loadCatalogForAdmin, rowToWorkout, workoutPatch, type WorkoutRow } from "@/lib/catalog-db";
+import { friendlyError, supabase, supabaseConfigured } from "@/lib/supabase";
 
 const NEXT: Partial<Record<ContentState, ContentState>> = {
   draft: "uploaded",
@@ -18,19 +20,50 @@ const TONE: Record<ContentState, "grey" | "green" | "amber" | "red" | "blue"> = 
 };
 
 export function ContentBoard() {
-  const [items, setItems] = useState<Workout[]>(seed);
+  const live = supabaseConfigured;
+  const [items, setItems] = useState<Workout[]>(live ? [] : seed);
+  const [instructors, setInstructors] = useState<Instructor[]>(live ? [] : seedInstructors);
+  const [loading, setLoading] = useState(live);
   const [filter, setFilter] = useState<ContentState | "all">("all");
   const [log, setLog] = useState<string[]>([]);
   const [open, setOpen] = useState<string | null>(null);
+  const [error, setError] = useState<string>();
+  const [busyId, setBusyId] = useState<string>();
 
-  function update(id: string, change: Partial<Workout>, note: string) {
-    setItems((list) => list.map((w) => (w.id === id ? { ...w, ...change } : w)));
-    setLog((l) => [`${new Date().toLocaleTimeString()} — ops@demo: ${note}`, ...l]);
+  useEffect(() => {
+    if (!live) return;
+    loadCatalogForAdmin()
+      .then((c) => {
+        setItems(c.workouts);
+        setInstructors(c.instructors);
+      })
+      .catch((e) => setError(friendlyError(e)))
+      .finally(() => setLoading(false));
+  }, [live]);
+
+  async function update(id: string, change: Partial<Workout>, note: string) {
+    setError(undefined);
+    if (!live) {
+      setItems((list) => list.map((w) => (w.id === id ? { ...w, ...change } : w)));
+      setLog((l) => [`${new Date().toLocaleTimeString()} — demo: ${note}`, ...l]);
+      return;
+    }
+    // The database re-checks everything: staff role, and the publishing rules.
+    setBusyId(id);
+    const { data, error } = await supabase().from("workouts").update(workoutPatch(change)).eq("id", id).select("*").single();
+    setBusyId(undefined);
+    if (error) return setError(friendlyError(error).replace(/^Cannot publish:/, "Can’t publish:"));
+    const saved = rowToWorkout(data as WorkoutRow);
+    setItems((list) => list.map((w) => (w.id === id ? saved : w)));
+    setLog((l) => [`${new Date().toLocaleTimeString()} — ${note} (saved; recorded in the audit log)`, ...l]);
   }
+
+  if (loading) return <p className="text-ink/60">Loading the catalogue…</p>;
 
   const shown = items.filter((w) => filter === "all" || w.state === filter);
   return (
     <>
+      {error && <p role="alert" className="mb-4 rounded-xl bg-coral/10 px-4 py-2.5 text-sm text-[#b8361a]">{error}</p>}
       <div className="mb-4 flex flex-wrap gap-2">
         {(["all", ...CONTENT_STATES] as const).map((s) => (
           <button key={s} onClick={() => setFilter(s)} className={`rounded-full px-3 py-1.5 text-sm ${filter === s ? "bg-ink text-paper" : "bg-white ring-1 ring-ink/10"}`}>
@@ -40,7 +73,8 @@ export function ContentBoard() {
       </div>
       <Table head={["Workout", "Instructor", "Ages", "Status", "Checks", ""]}>
         {shown.map((w) => {
-          const ins = instructors.find((i) => i.id === w.instructorId)!;
+          const ins = instructors.find((i) => i.id === w.instructorId);
+          if (!ins) return null;
           const check = canPublish({ ...w, state: w.state === "published" ? "approved" : w.state }, ins);
           const next = NEXT[w.state];
           const blocked = next === "published" && !canPublish(w, ins).ok;
@@ -58,7 +92,7 @@ export function ContentBoard() {
                 <td className="whitespace-nowrap px-4 py-3 text-right">
                   {next && (
                     <button
-                      disabled={blocked}
+                      disabled={blocked || busyId === w.id}
                       title={blocked ? canPublish(w, ins).problems.join("\n") : ""}
                       onClick={() => update(w.id, { state: next, publishedAt: next === "published" ? new Date().toISOString().slice(0, 10) : w.publishedAt }, `${w.title}: ${w.state} → ${next}`)}
                       className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-paper disabled:cursor-not-allowed disabled:bg-ink/20"
@@ -80,13 +114,13 @@ export function ContentBoard() {
                           ["safetyReviewed", "External safety review completed"],
                         ] as const).map(([k, label]) => (
                           <label key={k} className="mt-2 flex items-center gap-2">
-                            <input type="checkbox" checked={w.rights[k]} onChange={(e) => update(w.id, { rights: { ...w.rights, [k]: e.target.checked } }, `${w.title}: ${label} = ${e.target.checked}`)} />
+                            <input type="checkbox" disabled={busyId === w.id} checked={w.rights[k]} onChange={(e) => update(w.id, { rights: { ...w.rights, [k]: e.target.checked } }, `${w.title}: ${label} = ${e.target.checked}`)} />
                             {label}
                           </label>
                         ))}
                         {ins.isMinor && (
                           <label className="mt-2 flex items-center gap-2">
-                            <input type="checkbox" checked={w.rights.guardianConsent === true} onChange={(e) => update(w.id, { rights: { ...w.rights, guardianConsent: e.target.checked } }, `${w.title}: guardian consent = ${e.target.checked}`)} />
+                            <input type="checkbox" disabled={busyId === w.id} checked={w.rights.guardianConsent === true} onChange={(e) => update(w.id, { rights: { ...w.rights, guardianConsent: e.target.checked } }, `${w.title}: guardian consent = ${e.target.checked}`)} />
                             Guardian consent & child-employment requirements on file
                           </label>
                         )}
@@ -110,7 +144,7 @@ export function ContentBoard() {
       </Table>
       {log.length > 0 && (
         <div className="mt-6 rounded-xl bg-white p-4 text-xs ring-1 ring-ink/5">
-          <div className="mb-2 font-semibold uppercase tracking-wide text-ink/50">Audit trail (this session)</div>
+          <div className="mb-2 font-semibold uppercase tracking-wide text-ink/50">Your changes this session</div>
           {log.map((l, i) => <div key={i} className="font-mono">{l}</div>)}
         </div>
       )}

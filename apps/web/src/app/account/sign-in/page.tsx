@@ -31,7 +31,9 @@ export default function SignIn() {
             const { error } = await supabase().auth.signInWithPassword({ email: email.trim(), password });
             setBusy(false);
             if (error) return setError(friendlyError(error));
-            router.push("/watch/");
+            const next = new URLSearchParams(window.location.search).get("next");
+            // Only allow returning to a page on this site.
+            router.push(next && next.startsWith("/") && !next.startsWith("//") ? next : "/watch/");
           }}
         >
           <Field id="email" label="Email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

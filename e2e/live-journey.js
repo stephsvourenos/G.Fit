@@ -4,7 +4,9 @@
 // test family through the app. Run: E2E_PASSWORD=... RESET=1 node e2e/live-journey.js
 const chromium = require("@sparticuz/chromium").default ?? require("@sparticuz/chromium");
 const puppeteer = require("puppeteer-core");
-const B = "http://localhost:3100";
+const B = process.env.BASE_URL ?? "http://localhost:3100";
+const SUPABASE_URL = "https://iwwnexttdqksrwqafazi.supabase.co";
+const SUPABASE_KEY = "sb_publishable_wk7bojwHFpsZlOBqOcCFPA_os_1w4z6"; // public key
 const EMAIL = "e2e-parent@gfit.test";
 const PW = process.env.E2E_PASSWORD; // never commit the test password
 if (!PW) throw new Error("Set E2E_PASSWORD (and run the web app on port 3100) first");
@@ -39,21 +41,16 @@ const check = (name, ok, extra = "") => { results.push(`${ok ? "PASS" : "FAIL"} 
     try { await page.waitForFunction((p) => location.href.includes(p), { timeout: ms }, part); return true; } catch { return false; }
   };
 
-  // Reset from any earlier run, through the app itself: PIN → Family account → Delete household data.
+  // Reset from any earlier run: as the test parent, delete their household through the public API
+  // (Row-Level Security only allows deleting your own). Runs inside the browser so it uses the same network path.
   if (process.env.RESET === "1") {
-    await page.goto(B + "/account/sign-in/", { waitUntil: "networkidle0" });
-    await page.type("#email", EMAIL); await page.type("#password", PW);
-    await clickText("Sign in", "button");
-    await waitText("Who’s moving today?", 30000);
-    await clickText("Family account & billing", "button"); await sleep(600);
-    for (const d of "4826") { await clickExact(d); await sleep(120); }
-    await waitText("Delete household data", 20000);
-    await clickText("Delete household data", "button"); await sleep(300);
-    await clickText("Delete everything", "button");
-    let left = false;
-    try { await page.waitForFunction(() => !location.pathname.startsWith("/watch"), { timeout: 20000 }); left = true; } catch {}
-    check("delete household data via the app signs out and leaves", left, page.url());
-    await sleep(2000);
+    await page.goto(B + "/", { waitUntil: "domcontentloaded" });
+    const res = await page.evaluate(async (email, pw, url, key) => {
+      const t = await fetch(`${url}/auth/v1/token?grant_type=password`, { method: "POST", headers: { apikey: key, "Content-Type": "application/json" }, body: JSON.stringify({ email, password: pw }) }).then((r) => r.json());
+      const d = await fetch(`${url}/rest/v1/households?owner_user_id=not.is.null`, { method: "DELETE", headers: { apikey: key, Authorization: `Bearer ${t.access_token}` } });
+      return d.status;
+    }, EMAIL, PW, SUPABASE_URL, SUPABASE_KEY);
+    check("reset test family via API", res === 204, String(res));
   }
 
   // Signed-out visit goes to sign-in

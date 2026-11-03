@@ -91,23 +91,23 @@ export default function AccountPage() {
           {h.mode === "live" && (
             <button onClick={() => h.signOut().then(() => router.push("/"))} className="rounded-full px-4 py-2 text-sm font-semibold ring-1 ring-white/20">Sign out</button>
           )}
-          {h.deleteHouseholdData && !confirmDelete && (
-            <button onClick={() => setConfirmDelete(true)} className="rounded-full px-4 py-2 text-sm font-semibold text-coral-2 ring-1 ring-coral/40">Delete household data</button>
+          {h.closeAccount && !confirmDelete && (
+            <button onClick={() => setConfirmDelete(true)} className="rounded-full px-4 py-2 text-sm font-semibold text-coral-2 ring-1 ring-coral/40">Close account</button>
           )}
         </div>
         {confirmDelete && (
           <div className="mt-4 rounded-xl border border-coral/40 p-4 text-sm">
-            <p>This permanently deletes every profile, all progress, favourites and history, and your PIN. It can’t be undone.</p>
+            <p>This permanently closes your account: your login, every profile, all progress, favourites and history, and your PIN. It can’t be undone. If you’d like a copy of your data, use “Show my household data” first.</p>
             <div className="mt-3 flex gap-3">
               <button
                 onClick={async () => {
-                  const r = await h.deleteHouseholdData!();
+                  const r = await h.closeAccount!();
                   if (r.ok) router.push("/");
                   else setMsg(r.message);
                 }}
                 className="rounded-full bg-coral px-4 py-2 font-semibold text-white"
               >
-                Delete everything
+                Close account permanently
               </button>
               <button onClick={() => setConfirmDelete(false)} className="px-3 text-muted">Cancel</button>
             </div>
@@ -115,9 +115,6 @@ export default function AccountPage() {
         )}
         {msg && <p role="alert" className="mt-3 text-sm text-coral-2">{msg}</p>}
         {exported && <pre className="mt-4 max-h-72 overflow-auto rounded-xl bg-ink p-3 text-xs text-paper/80">{exported}</pre>}
-        {h.mode === "live" && (
-          <p className="mt-3 text-xs text-muted">Deleting household data removes everything about your family. Closing the login itself will be added with the server features in a later step — email support until then.</p>
-        )}
         {h.mode === "mock" && <p className="mt-3 text-xs text-muted">Demo mode: these work once real accounts are switched on.</p>}
       </section>
 

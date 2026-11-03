@@ -37,7 +37,8 @@ export interface HouseholdState {
   entitlement: HouseholdEntitlement | undefined;
   setSubscriptionActive?: (active: boolean) => void;
   exportData?: () => Promise<unknown>;
-  deleteHouseholdData?: () => Promise<PinResult>;
+  /** Closes the account completely: login, household, profiles and all activity. */
+  closeAccount?: () => Promise<PinResult>;
   signOut: () => Promise<void>;
 }
 

@@ -1,6 +1,7 @@
 import { buildStatement, DEFAULT_PAYOUT_TERMS, payoutDueDate, sumMinor } from "@app/domain";
 import { attributions, creators, demoFinance, referralFunnel, views, workouts } from "@app/mock-data";
 import { CreatorPortal, type CreatorData } from "./CreatorPortal";
+import { CreatorGate } from "./CreatorGate";
 
 export const metadata = { title: "Creator portal" };
 
@@ -36,5 +37,5 @@ function build(): CreatorData[] {
 }
 
 export default function Page() {
-  return <CreatorPortal data={build()} />;
+  return <CreatorGate sample={<CreatorPortal data={build()} />} />;
 }

@@ -294,11 +294,11 @@ export function LiveHouseholdProvider({ children }: { children: React.ReactNode 
         if (error) throw error;
         return data;
       },
-      deleteHouseholdData: async () => {
-        if (!householdId) return { ok: false, message: "Nothing to delete." };
-        const { error } = await db.from("households").delete().eq("id", householdId);
+      closeAccount: async () => {
+        const { error } = await db.rpc("delete_my_account");
         if (error) return fail(error);
-        await db.auth.signOut();
+        if (uid) writeDevice(uid, {});
+        await db.auth.signOut({ scope: "local" });
         return ok;
       },
       signOut: async () => {

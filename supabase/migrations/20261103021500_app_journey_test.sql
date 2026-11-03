@@ -89,6 +89,16 @@ begin
   select n + count(*) into n from public.household_pins where household_id = hid;
                                                             if n = 0 then passed := passed + 1; else failed := failed || ' [household delete removes everything]'; end if;
 
+  -- Close account completely (login + everything).
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', other, 'role', 'authenticated')::text, true);
+  insert into public.households (owner_user_id) values (other);
+  perform public.delete_my_account();
+  perform set_config('role', me, true);
+  select count(*) into n from auth.users where id = other;
+  select n + count(*) into n from public.households where owner_user_id = other;
+                                                            if n = 0 then passed := passed + 1; else failed := failed || ' [close account removes login and household]'; end if;
+
   if failed <> '' then raise exception 'ROLLBACK — % passed, FAILED:%', passed, failed; end if;
   raise exception 'ROLLBACK OK — ALL % JOURNEY CHECKS PASSED', passed;
 end;

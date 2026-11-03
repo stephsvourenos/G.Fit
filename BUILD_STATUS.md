@@ -61,6 +61,20 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
 - Waiting on approval: `supabase/migrations/20261103021500_app_journey_test.sql` (database-side journey test)
 - **Private preview live (3 Nov 2026):** https://g-fit-liard.vercel.app (Vercel Authentication on all deployments;
   auto-deploys from GitHub `main`; Supabase email links point here)
+- **Phase 1 completion (3 Nov 2026):**
+  - Close account: parents can permanently close their account (login + all family data) — `delete_my_account()`
+  - Admin login: `/admin` requires a staff login; the owner's account is the admin. Content approval and the audit
+    log run on the real database; other admin pages are clearly labelled as sample figures until Phases 3–5
+  - Every change to a workout's status or rights checklist is recorded automatically in the audit log
+  - Creator login: `/creator` shows a creator (or their guardian) only their own record, workouts and earnings;
+    admins see the sample preview
+  - Branded account emails ready in `supabase/email-templates/` (to paste into Supabase)
+  - Tests: privacy suite 32/32, database journey 19/19, family browser journey 17/17, admin/creator browser
+    checks 14/14 (`e2e/staff-journey.js`), unit tests 50/50
+  - Test logins on the dev project: e2e-parent@, e2e-admin@ (content editor), e2e-creator@ (guardian of sample
+    creator "Junior Coach Pip"), all @gfit.test
+- Before launch (noted for Phase 6): turn on Supabase leaked-password protection (paid plan feature), add a
+  transactional email provider, admin screens to invite staff/creator logins
 - Still to do in Phase 1: closing the login itself (needs a server function), admin & creator logins, confirmation-email wording/branding
 
 ## Blockers

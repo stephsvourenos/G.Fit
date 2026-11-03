@@ -1,8 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { brand } from "@app/config";
+import { ROLE_LABEL, useStaffSession } from "@/lib/staff";
+import { supabase, supabaseConfigured } from "@/lib/supabase";
+
+/** Pages that already run on the real database; the rest still show sample figures. */
+const LIVE_PAGES = ["/admin/content/", "/admin/audit/"];
 
 export const ADMIN_NAV: Array<[string, string, string?]> = [
   ["/admin/", "Overview"],
@@ -22,6 +28,32 @@ export const ADMIN_NAV: Array<[string, string, string?]> = [
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const router = useRouter();
+  const staff = useStaffSession();
+
+  useEffect(() => {
+    if (staff.state === "signed-out") router.replace(`/account/sign-in/?next=${encodeURIComponent(path)}`);
+  }, [staff.state, path, router]);
+
+  if (staff.state === "loading" || staff.state === "signed-out") {
+    return <div className="grid flex-1 place-items-center bg-[#f4f5f7] text-ink/60">Checking your access…</div>;
+  }
+  if (staff.state === "no-access" || staff.roles.length === 0) {
+    return (
+      <div className="grid flex-1 place-items-center bg-[#f4f5f7] p-6 text-center text-ink">
+        <div className="max-w-md">
+          <h1 className="font-display text-3xl">No admin access</h1>
+          <p className="mt-2 text-ink/65">You’re signed in as {staff.email}, which isn’t a staff account. Ask an admin to add you, or sign in with a different account.</p>
+          <div className="mt-5 flex justify-center gap-3">
+            {staff.creatorIds.length > 0 && <Link href="/creator/" className="rounded-full bg-ink px-4 py-2 font-semibold text-paper">Go to creator portal</Link>}
+            <button onClick={() => supabase().auth.signOut().then(() => router.push("/account/sign-in/?next=/admin/"))} className="rounded-full px-4 py-2 font-semibold ring-1 ring-ink/20">Sign in as someone else</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const sample = supabaseConfigured && !LIVE_PAGES.includes(path);
   return (
     <div className="flex flex-1 flex-col bg-[#f4f5f7] text-ink lg:flex-row">
       <aside className="border-b border-ink/10 bg-white lg:min-h-full lg:w-64 lg:border-b-0 lg:border-r">
@@ -41,11 +73,25 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div className="hidden px-5 py-4 text-xs text-ink/50 lg:block">
-          Signed in as <b>ops@demo</b> (role: owner). Prototype — no real logins yet.
-          <div className="mt-3 flex gap-3"><Link href="/" className="underline">Website</Link><Link href="/creator/" className="underline">Creator portal</Link></div>
+          Signed in as <b>{staff.email}</b> ({staff.roles.map((r) => ROLE_LABEL[r]).join(", ")}).
+          <div className="mt-3 flex flex-wrap gap-3">
+            <Link href="/" className="underline">Website</Link>
+            <Link href="/creator/" className="underline">Creator portal</Link>
+            {supabaseConfigured && (
+              <button onClick={() => supabase().auth.signOut().then(() => router.push("/"))} className="underline">Sign out</button>
+            )}
+          </div>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 p-4 sm:p-8">{children}</main>
+      <main className="min-w-0 flex-1 p-4 sm:p-8">
+        {sample && (
+          <p className="mb-5 rounded-xl bg-sun/25 px-4 py-2.5 text-sm text-ink">
+            <b>Sample figures.</b> This page shows the simulated demo data until payments and creator payouts go live (Phases 3–5).
+            Content approval and the audit log already use the real database.
+          </p>
+        )}
+        {children}
+      </main>
     </div>
   );
 }

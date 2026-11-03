@@ -1,4 +1,5 @@
-import { PageHeader, Table } from "@/components/AdminShell";
+import { PageHeader } from "@/components/AdminShell";
+import { LiveAudit } from "./LiveAudit";
 
 const rows = [
   ["2026-10-26 09:12", "ops@demo", "content", "Moved “Superhero Training Camp” to approved"],
@@ -14,9 +15,7 @@ export default function AuditPage() {
   return (
     <>
       <PageHeader title="Audit log" sub="Every admin and system action that changes content, money or access is recorded with who, when and what. Entries cannot be edited." />
-      <Table head={["When", "Who", "Area", "What"]}>
-        {rows.map((r) => <tr key={r.join()}>{r.map((c, i) => <td key={i} className="px-4 py-3 text-sm">{c}</td>)}</tr>)}
-      </Table>
+      <LiveAudit sample={rows} />
     </>
   );
 }
