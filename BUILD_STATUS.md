@@ -42,6 +42,16 @@ pnpm check:env        # shows which integrations are mock / test / live
 pnpm --filter web build:preview   # static preview export to apps/web/out
 ```
 
+## Phase 1 progress (3 Nov 2026)
+- Supabase project **gfit-dev-sydney** (Sydney region): full schema applied, every table has Row-Level Security
+- Sample catalogue loaded (6 creators, 6 instructors, 24 workouts)
+- **Database privacy test suite: 32/32 checks pass** (`select tests.run_rls_checks();`), covering household isolation,
+  creator isolation, staff can't read child profiles, PIN hashing + lockout after 5 tries, 6-profile cap, publish gate,
+  append-only ledger, profile deletion removes activity
+- Supabase security advisor: no warnings needing action. Its notes are intentional: PIN and billing tables have no
+  client access at all, and the PIN/export functions are the deliberate, checked way in
+- Still to do in Phase 1: connect the web app's sign-in and profile screens to Supabase, then retire the mock household
+
 ## Blockers
 - Phase 1 needs the Supabase account (ACCOUNT_SETUP.md §2).
 
