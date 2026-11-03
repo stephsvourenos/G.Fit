@@ -12,12 +12,12 @@ Statuses: `NOT NEEDED YET` · `ACTION REQUIRED` · `CONNECTED TEST` · `READY FO
 | # | Provider | Why | When | Cost to start | Status |
 |---|---|---|---|---|---|
 | 1 | GitHub | Permanent, private home for the code + history; later auto-deploys the website | Done — `stephsvourenos/G.Fit` | Free | `CONNECTED TEST` |
-| 2 | Supabase | Database, household sign-in, privacy rules | **Now (Phase 1)** | Free tier | `ACTION REQUIRED` |
+| 2 | Supabase | Database, household sign-in, privacy rules | Done — `gfit-dev-sydney`; Site URL + redirect set to the Vercel preview | Free tier | `CONNECTED TEST` |
 | 3 | Mux | Video upload, encoding, signed streaming | Phase 2 | Free plan (10 videos, 100k delivered min/month) | `NOT NEEDED YET` |
 | 4 | Stripe | Website subscriptions (test mode first) | Phase 3 | Free to open; fees per live charge only | `NOT NEEDED YET` |
 | 5 | Business bank (existing) | Payout file format + confirmation files | Phase 5 | — | `NOT NEEDED YET` |
 | 6 | Xero (optional) | Accounting export | Phase 5, only if you approve | Your existing plan | `NOT NEEDED YET` |
-| 7 | Vercel | Hosts the website/admin | Phase 6 | Commercial use needs a paid plan (verify at sign-up) | `NOT NEEDED YET` |
+| 7 | Vercel | Hosts the website/admin | Done (Hobby, private dev preview) — `g-fit-liard.vercel.app`, root `apps/web`, Vercel Authentication: All Deployments. Move to Pro (US$20/mo) before any commercial launch | Free now | `CONNECTED TEST` |
 | 8 | Expo (EAS) | Cloud builds of the iOS/Android apps (no Mac needed) | Phase 6 (optional earlier for phone testing) | Free tier | `NOT NEEDED YET` |
 | 9 | Apple Developer Program | Publish to the App Store | Phase 6 | US$99/yr (billed in AUD) | `NOT NEEDED YET` |
 | 10 | Google Play Console | Publish to Google Play | Phase 6 | US$25 one-off | `NOT NEEDED YET` |

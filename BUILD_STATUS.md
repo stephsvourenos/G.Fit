@@ -59,8 +59,9 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
   wrong PIN refused by the server, export, sign out, delete household data
 - Mock mode still works when no Supabase keys are configured
 - Waiting on approval: `supabase/migrations/20261103021500_app_journey_test.sql` (database-side journey test)
-- Still to do in Phase 1: closing the login itself (needs a server function), admin & creator logins, a hosted
-  preview URL, confirmation-email wording/branding
+- **Private preview live (3 Nov 2026):** https://g-fit-liard.vercel.app (Vercel Authentication on all deployments;
+  auto-deploys from GitHub `main`; Supabase email links point here)
+- Still to do in Phase 1: closing the login itself (needs a server function), admin & creator logins, confirmation-email wording/branding
 
 ## Blockers
 - Phase 1 needs the Supabase account (ACCOUNT_SETUP.md §2).
