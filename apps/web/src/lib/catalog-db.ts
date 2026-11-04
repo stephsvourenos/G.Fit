@@ -27,7 +27,14 @@ export interface WorkoutRow {
   rights_guardian_consent: boolean | null;
   territories: string[];
   thumbnail: { from?: string; to?: string; emoji?: string };
+  video_status: VideoStatus;
+  video_error: string | null;
+  video_duration_sec: number | null;
 }
+
+export type VideoStatus = "none" | "waiting" | "processing" | "ready" | "errored";
+export interface VideoInfo { status: VideoStatus; error: string | null; durationSec: number | null }
+export const rowToVideo = (r: WorkoutRow): VideoInfo => ({ status: r.video_status, error: r.video_error, durationSec: r.video_duration_sec });
 
 export const rowToWorkout = (r: WorkoutRow): Workout => ({
   id: r.id,
@@ -67,7 +74,7 @@ export function workoutPatch(change: Partial<Workout>): Record<string, unknown> 
   return p;
 }
 
-export async function loadCatalogForAdmin(): Promise<{ workouts: Workout[]; instructors: Instructor[] }> {
+export async function loadCatalogForAdmin(): Promise<{ workouts: Workout[]; instructors: Instructor[]; videos: Record<string, VideoInfo> }> {
   const db = supabase();
   const [w, i] = await Promise.all([
     db.from("workouts").select("*").order("published_at", { ascending: true, nullsFirst: false }),
@@ -77,6 +84,7 @@ export async function loadCatalogForAdmin(): Promise<{ workouts: Workout[]; inst
   if (i.error) throw i.error;
   return {
     workouts: (w.data as WorkoutRow[]).map(rowToWorkout),
+    videos: Object.fromEntries((w.data as WorkoutRow[]).map((r) => [r.id, rowToVideo(r)])),
     instructors: (i.data ?? []).map((r) => ({
       id: r.id,
       displayName: r.display_name,

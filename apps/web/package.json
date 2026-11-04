@@ -16,6 +16,7 @@
     "@app/mock-data": "workspace:*",
     "@fontsource-variable/bricolage-grotesque": "^5",
     "@fontsource-variable/manrope": "^5",
+    "@mux/mux-player-react": "3.14.1",
     "@supabase/supabase-js": "^2.118.0",
     "next": "16.4.3",
     "react": "19.3.0",

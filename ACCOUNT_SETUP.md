@@ -13,7 +13,7 @@ Statuses: `NOT NEEDED YET` · `ACTION REQUIRED` · `CONNECTED TEST` · `READY FO
 |---|---|---|---|---|---|
 | 1 | GitHub | Permanent, private home for the code + history; later auto-deploys the website | Done — `stephsvourenos/G.Fit` | Free | `CONNECTED TEST` |
 | 2 | Supabase | Database, household sign-in, privacy rules | Done — `gfit-dev-sydney`; Site URL + redirect set to the Vercel preview | Free tier | `CONNECTED TEST` |
-| 3 | Mux | Video upload, encoding, signed streaming | Phase 2 | Free plan (10 videos, 100k delivered min/month) | `NOT NEEDED YET` |
+| 3 | Mux | Video upload, encoding, signed streaming | Done — free plan, environment `gfit-dev`; access token + signing key stored as Supabase Edge Function secrets. Webhook: pending | Free (10 videos, 100k min/month) | `CONNECTED TEST` |
 | 4 | Stripe | Website subscriptions (test mode first) | Phase 3 | Free to open; fees per live charge only | `NOT NEEDED YET` |
 | 5 | Business bank (existing) | Payout file format + confirmation files | Phase 5 | — | `NOT NEEDED YET` |
 | 6 | Xero (optional) | Accounting export | Phase 5, only if you approve | Your existing plan | `NOT NEEDED YET` |

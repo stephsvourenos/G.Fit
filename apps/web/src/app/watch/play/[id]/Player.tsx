@@ -13,6 +13,9 @@ import {
 import { instructors, workouts } from "@app/mock-data";
 import { Thumb } from "@/components/Thumb";
 import { useHousehold } from "@/lib/household";
+import { supabaseConfigured } from "@/lib/supabase";
+import { DENIAL_MESSAGE, requestPlayback, type PlaybackGrant } from "@/lib/video";
+import { VideoPlayer } from "./VideoPlayer";
 
 const CUES: Record<CategoryId, string[]> = {
   soccer: ["Toe taps", "Sole rolls", "Inside-outside", "Quick feet", "Pull-backs", "Rest & breathe"],
@@ -32,7 +35,7 @@ const HEARTBEAT_EVERY = 12; // seconds of (simulated) real time
  * sends the same heartbeats the real player will, and runs the real
  * qualified-playback rules so you can see exactly what would be credited.
  */
-export function Player({ id }: { id: string }) {
+function SimulatedPlayer({ id }: { id: string }) {
   const h = useHousehold();
   const w = workouts.find((x) => x.id === id);
   const [pos, setPos] = useState(0);
@@ -287,4 +290,64 @@ export function Player({ id }: { id: string }) {
       )}
     </div>
   );
+}
+
+/**
+ * Live mode: ask the server for permission and a signed video link. If the
+ * workout has a real video, play it; if not (most sample workouts), fall back
+ * to the simulated player. Demo mode always uses the simulator.
+ */
+export function Player({ id }: { id: string }) {
+  const h = useHousehold();
+  const [grant, setGrant] = useState<PlaybackGrant | { error: string } | undefined>();
+  const profileId = h.activeProfile?.id;
+
+  useEffect(() => {
+    if (!supabaseConfigured || !profileId) return;
+    let cancelled = false;
+    requestPlayback(id, profileId)
+      .then((g) => !cancelled && setGrant(g))
+      .catch((e) => !cancelled && setGrant({ error: String((e as Error).message ?? e) }));
+    return () => {
+      cancelled = true;
+    };
+  }, [id, profileId]);
+
+  if (!supabaseConfigured) return <SimulatedPlayer id={id} />;
+  if (!h.ready) return null;
+  if (!h.activeProfile) {
+    return (
+      <div className="grid flex-1 place-items-center p-10 text-center">
+        <Link href="/watch/" className="underline">Choose a profile first</Link>
+      </div>
+    );
+  }
+  if (!grant) return <div className="grid flex-1 place-items-center bg-black text-paper/70">Getting your video ready…</div>;
+  if ("error" in grant) {
+    return (
+      <div className="grid flex-1 place-items-center p-10 text-center">
+        <div>
+          <p className="text-lg">We couldn’t start this video. Please try again in a moment.</p>
+          <Link href={`/watch/workout/${id}/`} className="mt-4 inline-block underline">Back</Link>
+        </div>
+      </div>
+    );
+  }
+  if (!grant.allowed) {
+    return (
+      <div className="grid flex-1 place-items-center p-10 text-center">
+        <div>
+          <div className="text-5xl">🔒</div>
+          <p className="mt-4 text-lg">{DENIAL_MESSAGE[grant.reason]}</p>
+          <Link href={grant.reason === "pin-required" ? "/watch/" : `/watch/workout/${id}/`} className="mt-4 inline-block underline">
+            {grant.reason === "pin-required" ? "Enter the PIN" : "Back"}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  if (!grant.video) return <SimulatedPlayer id={id} />;
+  const w = workouts.find((x) => x.id === id)!;
+  const ins = instructors.find((i) => i.id === w.instructorId);
+  return <VideoPlayer w={w} playbackId={grant.playbackId} tokens={grant.tokens} instructorName={ins?.displayName ?? ""} />;
 }

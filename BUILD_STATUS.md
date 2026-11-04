@@ -75,7 +75,23 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
     creator "Junior Coach Pip"), all @gfit.test
 - Before launch (noted for Phase 6): turn on Supabase leaked-password protection (paid plan feature), add a
   transactional email provider, admin screens to invite staff/creator logins
-- Phase 1 is complete once the email templates are pasted into Supabase. Next: Phase 2 (Mux video).
+- Phase 1 complete. Branded emails wait for a custom email provider (Supabase requires custom SMTP to edit templates).
+
+## Phase 2 progress (5 Nov 2026) — video
+- Mux account (free plan), environment `gfit-dev`; secrets stored only in Supabase Edge Function secrets
+- Supabase Edge Functions: `video-admin` (staff-only direct upload / sample clip / status), `playback-token`
+  (server checks profile ownership, membership, age band, intensity limit and — for adult profiles — a parent
+  PIN entered in the last 10 minutes, then issues expiring signed links), `mux-webhook` (signature-checked,
+  repeat deliveries ignored, re-reads Mux before saving), `mux-health` (staff diagnostics)
+- Videos are uploaded as *signed-only*: the stream refuses to play without a valid link (tested: 200 with, 403 without)
+- Admin content page: upload/replace a video file (browser → Mux directly, with progress), sample test clip,
+  live status; member app plays real video with Mux Player and falls back to the simulator for workouts
+  without video
+- Admin-only `admin_grant_membership()` gives test/comp memberships (`manual_grant`, never counted as paid)
+- Tests: 7 server permission checks, `e2e/video-journey.js` 9/9 (upload → processing → ready → child plays →
+  stream 200 → adult needs server-side PIN → child refused teen workout)
+- Next in Phase 2: Mux webhook switched on (needs one dashboard step), server-side heartbeat storage + nightly
+  qualified-minutes aggregation + 90-day purge, casting check on a real TV, mobile app video
 
 ## Blockers
 - Phase 1 needs the Supabase account (ACCOUNT_SETUP.md §2).

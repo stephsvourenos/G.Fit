@@ -4,7 +4,8 @@ import { Fragment, useEffect, useState } from "react";
 import { AGE_BAND_LABEL, canPublish, CATEGORY_LABEL, CONTENT_STATES, formatDuration, type ContentState, type Instructor, type Workout } from "@app/domain";
 import { instructors as seedInstructors, workouts as seed } from "@app/mock-data";
 import { Badge, Table } from "@/components/AdminShell";
-import { loadCatalogForAdmin, rowToWorkout, workoutPatch, type WorkoutRow } from "@/lib/catalog-db";
+import { loadCatalogForAdmin, rowToVideo, rowToWorkout, workoutPatch, type VideoInfo, type WorkoutRow } from "@/lib/catalog-db";
+import { VideoPanel, VideoBadge } from "./VideoPanel";
 import { friendlyError, supabase, supabaseConfigured } from "@/lib/supabase";
 
 const NEXT: Partial<Record<ContentState, ContentState>> = {
@@ -29,6 +30,7 @@ export function ContentBoard() {
   const [open, setOpen] = useState<string | null>(null);
   const [error, setError] = useState<string>();
   const [busyId, setBusyId] = useState<string>();
+  const [videos, setVideos] = useState<Record<string, VideoInfo>>({});
 
   useEffect(() => {
     if (!live) return;
@@ -36,6 +38,7 @@ export function ContentBoard() {
       .then((c) => {
         setItems(c.workouts);
         setInstructors(c.instructors);
+        setVideos(c.videos);
       })
       .catch((e) => setError(friendlyError(e)))
       .finally(() => setLoading(false));
@@ -54,6 +57,7 @@ export function ContentBoard() {
     setBusyId(undefined);
     if (error) return setError(friendlyError(error).replace(/^Cannot publish:/, "Can’t publish:"));
     const saved = rowToWorkout(data as WorkoutRow);
+    setVideos((v) => ({ ...v, [id]: rowToVideo(data as WorkoutRow) }));
     setItems((list) => list.map((w) => (w.id === id ? saved : w)));
     setLog((l) => [`${new Date().toLocaleTimeString()} — ${note} (saved; recorded in the audit log)`, ...l]);
   }
@@ -71,7 +75,7 @@ export function ContentBoard() {
           </button>
         ))}
       </div>
-      <Table head={["Workout", "Instructor", "Ages", "Status", "Checks", ""]}>
+      <Table head={["Workout", "Instructor", "Ages", "Status", "Checks", ...(live ? ["Video"] : []), ""]}>
         {shown.map((w) => {
           const ins = instructors.find((i) => i.id === w.instructorId);
           if (!ins) return null;
@@ -89,6 +93,7 @@ export function ContentBoard() {
                 <td className="px-4 py-3 text-xs">{w.ageBands.map((b) => AGE_BAND_LABEL[b]).join(", ")}</td>
                 <td className="px-4 py-3"><Badge tone={TONE[w.state]}>{w.state}</Badge>{w.publishedAt && <div className="mt-1 text-xs text-ink/50">{w.publishedAt}</div>}</td>
                 <td className="px-4 py-3">{check.ok || w.state === "archived" ? <Badge tone="green">all clear</Badge> : <Badge tone="red">{check.problems.filter((p) => !p.startsWith("Must be")).length} issue(s)</Badge>}</td>
+                {live && <td className="px-4 py-3"><VideoBadge v={videos[w.id]} /></td>}
                 <td className="whitespace-nowrap px-4 py-3 text-right">
                   {next && (
                     <button
@@ -104,7 +109,7 @@ export function ContentBoard() {
               </tr>
               {open === w.id && (
                 <tr>
-                  <td colSpan={6} className="bg-ink/[0.02] px-4 py-4">
+                  <td colSpan={live ? 7 : 6} className="bg-ink/[0.02] px-4 py-4">
                     <div className="grid gap-4 text-sm sm:grid-cols-2">
                       <div>
                         <div className="font-semibold">Rights & safety checklist</div>
@@ -132,7 +137,11 @@ export function ContentBoard() {
                           {canPublish({ ...w, state: "approved" }, ins).problems.map((p) => <li key={p}>{p}</li>)}
                           {canPublish({ ...w, state: "approved" }, ins).ok && <li>None — ready to publish once approved.</li>}
                         </ul>
-                        <p className="mt-3 text-xs text-ink/50">Video file: sample placeholder (Mux upload arrives in Phase 2).</p>
+                        {live ? (
+                          <VideoPanel workoutId={w.id} title={w.title} v={videos[w.id]} onChange={(v) => setVideos((all) => ({ ...all, [w.id]: v }))} />
+                        ) : (
+                          <p className="mt-3 text-xs text-ink/50">Video uploads work once the app is connected to Mux.</p>
+                        )}
                       </div>
                     </div>
                   </td>

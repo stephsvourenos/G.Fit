@@ -223,7 +223,11 @@ export function LiveHouseholdProvider({ children }: { children: React.ReactNode 
         if (status === "needs-pin") setStatus(profiles.length ? "ready" : "needs-profiles");
         return ok;
       },
-      lockPin: () => setUnlockedUntil(0),
+      lockPin: () => {
+        setUnlockedUntil(0);
+        // Also end the unlock on the server, so adult-profile videos need the PIN again.
+        void db.rpc("lock_household_pin").then(({ error }) => error && console.error("[household] lock", error.message));
+      },
       addProfile: async (p) => {
         if (!householdId) return { ok: false, message: "Your household isn’t loaded yet." };
         const { data, error } = await db
