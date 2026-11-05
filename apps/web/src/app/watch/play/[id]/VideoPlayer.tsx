@@ -6,18 +6,22 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_PLAYBACK_POLICY, evaluateSession, type Heartbeat, type Workout } from "@app/domain";
 import { useHousehold } from "@/lib/household";
+import { sendHeartbeat } from "@/lib/video";
 
-const HEARTBEAT_MS = 12_000;
+/** Every 12 seconds; a little more often on very short clips so they can be measured fairly. */
+const heartbeatMs = (durationSec: number) => Math.round(Math.max(5, Math.min(12, durationSec / 4)) * 1000);
 
 /**
- * Real, signed Mux playback. Sends the same 12-second heartbeats as the
- * simulator and runs the qualified-playback rules on them. (Phase 2 next step:
- * the server stores and validates these heartbeats for royalties.)
+ * Real, signed Mux playback. Every 12 seconds (and on play/pause/seek) the
+ * player sends a heartbeat to the server, which stamps its own arrival time and
+ * later decides what counts towards creator royalties. The panel shows the same
+ * rules running locally so you can watch them work.
  */
-export function VideoPlayer({ w, playbackId, tokens, instructorName }: {
+export function VideoPlayer({ w, playbackId, tokens, sessionId, instructorName }: {
   w: Workout;
   playbackId: string;
   tokens: { playback: string; thumbnail: string; storyboard: string };
+  sessionId?: string;
   instructorName: string;
 }) {
   const h = useHousehold();
@@ -32,36 +36,46 @@ export function VideoPlayer({ w, playbackId, tokens, instructorName }: {
   const beat = () => {
     const el = ref.current;
     if (!el) return;
-    setBeats((b) => [
-      ...b,
-      {
-        sessionId: "live",
-        seq: seq.current++,
-        receivedAt: Date.now(),
-        positionSec: el.currentTime ?? 0,
-        playing: !el.paused && !el.ended,
-        visible: document.visibilityState === "visible",
-        buffering: (el.readyState ?? 4) < 3,
-        playbackRate: el.playbackRate ?? 1,
-      },
-    ]);
+    const hb: Heartbeat = {
+      sessionId: sessionId ?? "live",
+      seq: seq.current++,
+      receivedAt: Date.now(),
+      positionSec: el.currentTime ?? 0,
+      playing: !el.paused && !el.ended,
+      visible: document.visibilityState === "visible",
+      buffering: (el.readyState ?? 4) < 3,
+      playbackRate: el.playbackRate ?? 1,
+    };
+    if (sessionId) {
+      sendHeartbeat(sessionId, {
+        seq: hb.seq,
+        position_sec: hb.positionSec,
+        playing: hb.playing,
+        visible: hb.visible,
+        buffering: hb.buffering,
+        playback_rate: hb.playbackRate,
+      });
+    }
+    setBeats((b) => [...b, hb]);
   };
 
   useEffect(() => {
-    const t = window.setInterval(beat, HEARTBEAT_MS);
+    // Uses the real video length once it has loaded (the catalogue figure is only an estimate).
+    const t = window.setInterval(beat, heartbeatMs(duration));
     const onVis = () => beat();
     document.addEventListener("visibilitychange", onVis);
     return () => {
       window.clearInterval(t);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duration]);
 
   const evaluation = useMemo(
     () =>
       evaluateSession(
         {
-          sessionId: "live",
+          sessionId: sessionId ?? "live",
           householdId: h.activeProfile?.householdId ?? "",
           profileId: h.activeProfile?.id ?? "",
           workoutId: w.id,
@@ -75,7 +89,7 @@ export function VideoPlayer({ w, playbackId, tokens, instructorName }: {
         beats,
         DEFAULT_PLAYBACK_POLICY,
       ),
-    [beats, duration, h.activeProfile, w, startedAt],
+    [beats, duration, h.activeProfile, w, startedAt, sessionId],
   );
 
   useEffect(() => {

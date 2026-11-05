@@ -21,13 +21,19 @@ async function as(email, next, fn) {
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 900 });
   const net = [];
-  page.on("response", (r) => { if (r.url().includes("stream.mux.com")) net.push(r.status()); });
+  const sessions = [];
+  const beats = [];
+  page.on("response", async (r) => {
+    if (r.url().includes("stream.mux.com")) net.push(r.status());
+    if (r.url().includes("/functions/v1/playback-token") && r.request().method() === "POST") { try { const j = await r.json(); if (j.sessionId) sessions.push(j.sessionId); } catch {} }
+    if (r.url().includes("/functions/v1/heartbeat") && r.request().method() === "POST") beats.push(r.status());
+  });
   const waitText = async (t, ms = 30000) => { try { await page.waitForFunction((t) => document.body.innerText.includes(t), { timeout: ms }, t); return true; } catch { return false; } };
   const click = (t, sel = "button, a") => page.evaluate((t, sel) => { const el = [...document.querySelectorAll(sel)].find((e) => e.textContent.trim().includes(t)); if (!el) return false; el.click(); return true; }, t, sel);
   await page.goto(`${B}/account/sign-in/?next=${encodeURIComponent(next)}`, { waitUntil: "networkidle0" });
   await page.type("#email", email); await page.type("#password", PW);
   await click("Sign in", "button");
-  try { await fn({ page, waitText, click, net }); } finally { await browser.close(); }
+  try { await fn({ page, waitText, click, net, sessions, beats }); } finally { await browser.close(); }
 }
 
 (async () => {
@@ -49,7 +55,7 @@ async function as(email, next, fn) {
   });
 
   // 2 + 3. Family playback.
-  await as("e2e-parent@gfit.test", "/watch/", async ({ page, waitText, click, net }) => {
+  await as("e2e-parent@gfit.test", "/watch/", async ({ page, waitText, click, net, sessions, beats }) => {
     await waitText("Who’s moving today?");
     await click("Leo", "button");
     await page.waitForFunction(() => location.pathname.includes("/watch/home"), { timeout: 20000 });
@@ -63,6 +69,12 @@ async function as(email, next, fn) {
       return { duration: p?.duration, codecs: typeof MediaSource !== "undefined" && MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01E"') };
     });
     check("video metadata loaded", (media.duration ?? 0) > 10 || media.codecs === false, JSON.stringify(media));
+    // Play it through: the player must open a server session and send heartbeats the server accepts.
+    await page.evaluate(() => { const p = document.querySelector("mux-player"); p.muted = true; return p.play().catch(() => null); });
+    await sleep(16000);
+    check("server opened a playback session", sessions.length > 0, sessions[0] ?? "");
+    check("heartbeats accepted by the server", beats.filter((s) => s === 200).length >= 2, JSON.stringify(beats));
+    if (sessions[0]) console.log("SESSION", sessions[0]);
 
     // Adult profile: the PIN unlock lives on the server; switching to a child profile locked it.
     await page.goto(`${B}/watch/`, { waitUntil: "networkidle0" });

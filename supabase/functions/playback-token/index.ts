@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
     const auth = req.headers.get("Authorization") ?? "";
-    const { slug, profile_id } = await req.json();
+    const { slug, profile_id, device_id } = await req.json();
     if (typeof slug !== "string" || typeof profile_id !== "string") return json({ error: "slug and profile_id required" }, 400);
 
     const prof = await asUser(auth, `profiles?id=eq.${encodeURIComponent(profile_id)}&select=id,household_id,age_band,max_intensity,pin_protected`);
@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       if (!until || new Date(until).getTime() < Date.now()) return json({ allowed: false, reason: "pin-required" }, 401);
     }
 
-    const wk = await asUser(auth, `workouts?slug=eq.${encodeURIComponent(slug)}&select=id,state,age_bands,intensity,mux_playback_id,video_status,video_duration_sec`);
+    const wk = await asUser(auth, `workouts?slug=eq.${encodeURIComponent(slug)}&select=id,creator_id,duration_sec,state,age_bands,intensity,mux_playback_id,video_status,video_duration_sec`);
     const w = wk.data?.[0];
     if (!w || w.state !== "published") return json({ allowed: false, reason: "not-published" }, 404);
     if (!w.age_bands.includes(profile.age_band)) return json({ allowed: false, reason: "age-restricted" }, 403);
@@ -57,7 +57,20 @@ Deno.serve(async (req) => {
       signPlayback(w.mux_playback_id, "t", ttl),
       signPlayback(w.mux_playback_id, "s", ttl),
     ]);
-    return json({ allowed: true, video: true, playbackId: w.mux_playback_id, tokens: { playback, thumbnail, storyboard }, expiresInSec: ttl });
+    // Open a playback session: heartbeats are only accepted for sessions the server started.
+    const sess = await asServer("playback_sessions", {
+      method: "POST",
+      body: JSON.stringify({
+        household_id: profile.household_id,
+        profile_id: profile.id,
+        workout_id: w.id,
+        creator_id: w.creator_id,
+        device_id: typeof device_id === "string" ? device_id.slice(0, 64) : "unknown",
+        duration_sec: Math.max(1, Math.round(w.video_duration_sec ?? w.duration_sec)),
+      }),
+    });
+    const sessionId = sess.data?.[0]?.id;
+    return json({ allowed: true, video: true, playbackId: w.mux_playback_id, tokens: { playback, thumbnail, storyboard }, expiresInSec: ttl, sessionId });
   } catch (e) {
     console.error(e);
     return json({ error: (e as Error).message }, 500);

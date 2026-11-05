@@ -1,6 +1,6 @@
 # BUILD_STATUS
 
-_Last updated: 26 Oct 2026 — end of Phase 0_
+_Last updated: 5 Nov 2026 — Phase 2 (video) built; waiting on your TV casting check_
 
 ## Done (Phase 0)
 - Monorepo (pnpm workspaces): `apps/web` (Next.js 16), `apps/mobile` (Expo SDK 58), `packages/domain`,
@@ -90,11 +90,34 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
 - Admin-only `admin_grant_membership()` gives test/comp memberships (`manual_grant`, never counted as paid)
 - Tests: 7 server permission checks, `e2e/video-journey.js` 9/9 (upload → processing → ready → child plays →
   stream 200 → adult needs server-side PIN → child refused teen workout)
-- Next in Phase 2: Mux webhook switched on (needs one dashboard step), server-side heartbeat storage + nightly
-  qualified-minutes aggregation + 90-day purge, casting check on a real TV, mobile app video
+- **Mux webhook connected (5 Nov 2026):** uploads turn "ready" on their own; forged signatures are refused (401)
+- **Qualified minutes on the server (5 Nov 2026):**
+  - Pressing play opens a server-side *playback session*; the player sends a heartbeat every 12 seconds (5–12 s on
+    very short clips) and on play / pause / end. The server stamps the arrival time itself, accepts heartbeats only
+    for its own sessions and the caller's own profiles, ignores replays and spam, and ends sessions after 12 hours
+  - A scheduled job every 15 minutes (`aggregate-playback`, pg_cron) scores sessions that have been quiet for 10
+    minutes with the same rules as the app (a test keeps the server copy identical), applies the repeat and monthly
+    caps, and writes `qualified_views` (royalty input) and `playback_anomalies` (fraud queue). Admin/finance can run
+    it now from the Playback page. The job authenticates with single-use codes, so no secret is stored anywhere
+  - Raw heartbeats are deleted automatically after 90 days (nightly job)
+  - Admin **Playback & fraud alerts** page now shows real sessions, coverage, credited minutes and flags
+  - Rule fix found in live testing: the stretch just before a pause or the end now counts (it used to be dropped);
+    hidden/background play still never counts. Heartbeats are now sent one at a time so they arrive in order
+  - Verified live: honest 12-second watch → 12 s credited, no flags; skip-ahead → 0 and flagged; replayed heartbeat
+    ignored; same workout twice in a day → second not credited ("repeat same day"); forged/anonymous job calls refused;
+    families can't read sessions or minutes; a creator sees only their own workouts' totals
+- **Phone app (5 Nov 2026):** real household sign-in (stays signed in), real profiles, parent PIN checked by the
+  server, signed Mux video in the phone's native player with server heartbeats; AirPlay button on iPhone. Leaving the
+  app counts as "not watching". Still sign-in only — no purchase screens. Profiles/PIN are created on the website
+- Tests: unit 52/52 (incl. server-copy check), family journey 17/17, staff 14/14, video journey 8/8 playback checks (now incl.
+  session opened + heartbeats accepted), phone-app journey 8/8 (`e2e/mobile-journey.js`, web build: sign-in, wrong
+  password, real profiles, wrong/right PIN, signed playback granted, teen workout refused)
+- Still to do in Phase 2: **your casting check on a real TV** (AirPlay / Chromecast) and a play-through on a real
+  phone (needs a test build — see "Testing on your phone" below)
 
 ## Blockers
-- Phase 1 needs the Supabase account (ACCOUNT_SETUP.md §2).
+- None. Phone testing on a real device needs either the free Expo Go app + my dev server, or a free Expo (EAS) test
+  build — I'll set that up when you're ready (ACCOUNT_SETUP.md §8).
 
 ## Next
 1. ✅ Code is on GitHub: `stephsvourenos/G.Fit` (27 Oct 2026).

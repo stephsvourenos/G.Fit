@@ -349,5 +349,5 @@ export function Player({ id }: { id: string }) {
   if (!grant.video) return <SimulatedPlayer id={id} />;
   const w = workouts.find((x) => x.id === id)!;
   const ins = instructors.find((i) => i.id === w.instructorId);
-  return <VideoPlayer w={w} playbackId={grant.playbackId} tokens={grant.tokens} instructorName={ins?.displayName ?? ""} />;
+  return <VideoPlayer w={w} playbackId={grant.playbackId} tokens={grant.tokens} sessionId={grant.sessionId} instructorName={ins?.displayName ?? ""} />;
 }

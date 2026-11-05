@@ -7,12 +7,36 @@ export type PlaybackDenial = "no-entitlement" | "pin-required" | "age-restricted
 export type PlaybackGrant =
   | { allowed: false; reason: PlaybackDenial }
   | { allowed: true; video: false }
-  | { allowed: true; video: true; playbackId: string; tokens: { playback: string; thumbnail: string; storyboard: string }; expiresInSec: number };
+  | {
+      allowed: true;
+      video: true;
+      playbackId: string;
+      tokens: { playback: string; thumbnail: string; storyboard: string };
+      expiresInSec: number;
+      sessionId?: string;
+    };
+
+/** A random ID for this browser (not linked to the person) — lets the server spot one device streaming twice. */
+export function deviceId(): string {
+  const key = "gfit.device";
+  try {
+    let id = localStorage.getItem(key);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(key, id);
+    }
+    return id;
+  } catch {
+    return "no-storage";
+  }
+}
 
 /** Ask the server for permission + short-lived signed links (see supabase/functions/playback-token). */
 export async function requestPlayback(appWorkoutId: string, profileId: string): Promise<PlaybackGrant> {
   const slug = appWorkoutId.replace(/^wk-/, "");
-  const { data, error } = await supabase().functions.invoke("playback-token", { body: { slug, profile_id: profileId } });
+  const { data, error } = await supabase().functions.invoke("playback-token", {
+    body: { slug, profile_id: profileId, device_id: deviceId() },
+  });
   if (data) return data as PlaybackGrant;
   // Denials come back with a 4xx status; supabase-js puts the body on the error's context.
   const ctx = (error as { context?: Response } | null)?.context;
@@ -33,6 +57,28 @@ export const DENIAL_MESSAGE: Record<PlaybackDenial, string> = {
   "not-published": "This workout isn’t available yet.",
   "not-your-profile": "Please choose one of your family’s profiles first.",
 };
+
+export interface HeartbeatPayload {
+  seq: number;
+  position_sec: number;
+  playing: boolean;
+  visible: boolean;
+  buffering: boolean;
+  playback_rate: number;
+}
+
+let queue: Promise<unknown> = Promise.resolve();
+
+/**
+ * The server records when each heartbeat arrives, so they are sent strictly one
+ * after another (never overlapping) to keep them in order. Failures never
+ * interrupt the workout.
+ */
+export function sendHeartbeat(sessionId: string, beat: HeartbeatPayload): void {
+  queue = queue
+    .then(() => supabase().functions.invoke("heartbeat", { body: { session_id: sessionId, ...beat } }))
+    .catch(() => undefined);
+}
 
 /* ---------- admin ---------- */
 

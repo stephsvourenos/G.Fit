@@ -87,6 +87,15 @@ describe("qualified playback", () => {
     expect(e.qualifies).toBe(true);
   });
 
+  it("the stretch just before a pause or the end still counts", () => {
+    // 30-second clip: beats at 0, 12, 24 while playing, then the "ended" beat at 30 (no longer playing).
+    const hb = beats("s1", 24, (t) => t);
+    hb.push({ ...hb[hb.length - 1]!, seq: 3, receivedAt: T0 + 30_000, positionSec: 30, playing: false });
+    const e = evaluateSession(session({ durationSec: 30 }), hb);
+    expect(e.creditedSec).toBe(30);
+    expect(e.qualifies).toBe(true);
+  });
+
   it("background playback is not credited", () => {
     const e = evaluateSession(session(), beats("s1", 600, (t) => t, { state: () => ({ visible: false }) }));
     expect(e.creditedSec).toBe(0);

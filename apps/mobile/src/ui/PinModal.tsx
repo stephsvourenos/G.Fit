@@ -1,30 +1,50 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { C } from "./theme";
 
-export function PinModal({ visible, title, onSubmit, onCancel }: { visible: boolean; title: string; onSubmit: (pin: string) => boolean; onCancel: () => void }) {
+/** onSubmit resolves to an error message, or undefined when the PIN was accepted. */
+export function PinModal({ visible, title, hint, onSubmit, onCancel }: {
+  visible: boolean;
+  title: string;
+  hint?: string;
+  onSubmit: (pin: string) => Promise<string | undefined>;
+  onCancel: () => void;
+}) {
   const [pin, setPin] = useState("");
-  const [error, setError] = useState(false);
-  const press = (d: string) => {
-    const next = (pin + d).slice(0, 4);
+  const [error, setError] = useState<string>();
+  const [checking, setChecking] = useState(false);
+  // Digits are kept in a ref too, so fast taps never read a stale value.
+  const digits = useRef("");
+  const press = async (d: string) => {
+    if (checking) return;
+    const next = (digits.current + d).slice(0, 4);
+    digits.current = next;
     setPin(next);
-    setError(false);
+    setError(undefined);
     if (next.length === 4) {
-      if (!onSubmit(next)) setError(true);
+      setChecking(true);
+      const err = await onSubmit(next);
+      setChecking(false);
+      if (err) setError(err);
+      digits.current = "";
       setPin("");
     }
+  };
+  const back = () => {
+    digits.current = digits.current.slice(0, -1);
+    setPin(digits.current);
   };
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={s.backdrop}>
         <View style={s.card}>
           <Text style={s.title}>{title}</Text>
-          <Text style={s.sub}>Parent PIN (demo: 1234)</Text>
+          <Text style={s.sub}>{checking ? "Checking…" : (hint ?? "Parent PIN")}</Text>
           <View style={s.dots}>{[0, 1, 2, 3].map((i) => <View key={i} style={[s.dot, i < pin.length && { backgroundColor: C.sun }]} />)}</View>
-          {error && <Text style={s.err}>That PIN didn’t match.</Text>}
+          {error && <Text style={s.err}>{error}</Text>}
           <View style={s.grid}>
             {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"].map((k, i) => (
-              <Pressable key={i} disabled={!k} onPress={() => (k === "⌫" ? setPin(pin.slice(0, -1)) : press(k))} style={({ pressed }) => [s.key, !k && { opacity: 0 }, pressed && { opacity: 0.6 }]}>
+              <Pressable key={i} disabled={!k} accessibilityLabel={k === "⌫" ? "Delete" : k} onPress={() => (k === "⌫" ? back() : void press(k))} style={({ pressed }) => [s.key, !k && { opacity: 0 }, pressed && { opacity: 0.6 }]}>
                 <Text style={s.keyText}>{k}</Text>
               </Pressable>
             ))}

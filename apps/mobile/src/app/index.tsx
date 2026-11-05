@@ -1,10 +1,11 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { AGE_BAND_LABEL, type Profile } from "@app/domain";
 import { brand } from "@app/config";
 import { useHousehold } from "@/lib/household";
 import { PinModal } from "@/ui/PinModal";
+import { SignIn } from "@/ui/SignIn";
 import { C } from "@/ui/theme";
 
 export default function ProfilePicker() {
@@ -17,6 +18,11 @@ export default function ProfilePicker() {
     h.select(p.id);
     router.push("/home");
   };
+
+  if (h.status === "loading") {
+    return <View style={[s.root, { justifyContent: "center" }]}><ActivityIndicator color={C.paper} /></View>;
+  }
+  if (h.status === "signed-out") return <SignIn />;
 
   return (
     <SafeAreaView style={s.root}>
@@ -32,18 +38,29 @@ export default function ProfilePicker() {
             </Pressable>
           ))}
         </View>
-        <Text style={s.note}>Sign in with your household account. Membership and billing are managed by the account owner outside this app.</Text>
+        {h.status === "no-profiles" && (
+          <Text style={s.empty}>No profiles yet. Add your family’s profiles and parent PIN on our website, then come back.</Text>
+        )}
+        <Text style={s.note}>Membership and billing are managed by the account owner outside this app.</Text>
+        {h.mode === "live" && (
+          <View style={s.row}>
+            {h.status === "no-profiles" && <Pressable onPress={h.reload}><Text style={s.link}>Refresh</Text></Pressable>}
+            <Pressable onPress={() => void h.signOut()} accessibilityRole="button"><Text style={s.link}>Sign out{h.email ? ` (${h.email})` : ""}</Text></Pressable>
+          </View>
+        )}
       </ScrollView>
       <PinModal
         visible={!!pending}
         title={`Open ${pending?.nickname ?? ""}’s profile`}
         onCancel={() => setPending(null)}
-        onSubmit={(pin) => {
-          if (!h.unlock(pin) || !pending) return false;
+        hint={h.mode === "demo" ? "Parent PIN (demo: 1234)" : "Parent PIN"}
+        onSubmit={async (pin) => {
+          const err = await h.unlock(pin);
+          if (err || !pending) return err;
           h.select(pending.id);
           setPending(null);
           router.push("/home");
-          return true;
+          return undefined;
         }}
       />
     </SafeAreaView>
@@ -60,5 +77,8 @@ const s = StyleSheet.create({
   avatar: { width: 104, height: 104, borderRadius: 30, alignItems: "center", justifyContent: "center" },
   name: { color: C.paper, fontWeight: "700", marginTop: 10, fontSize: 16 },
   meta: { color: C.muted, fontSize: 12, marginTop: 2 },
+  empty: { color: C.paper, textAlign: "center", marginTop: 24, maxWidth: 320 },
+  row: { flexDirection: "row", gap: 20, marginTop: 16 },
+  link: { color: C.sun, fontWeight: "700", fontSize: 13 },
   note: { color: C.muted, fontSize: 12, textAlign: "center", marginTop: 40, maxWidth: 320 },
 });

@@ -172,12 +172,18 @@ export function extractSegments(
     const b = clean[i]!;
     const wallSec = (b.receivedAt - a.receivedAt) / 1000;
     const advanced = b.positionSec - a.positionSec;
-    if (advanced <= 0) continue; // paused in place or seeked backwards: nothing new played
+    if (advanced <= 0) {
+      // Paused in place or seeked backwards: nothing new played.
+      if (!a.playing || !b.playing) flags.add("background-or-paused");
+      continue;
+    }
     if (wallSec > p.maxHeartbeatGapSec) {
       flags.add("gap-too-long");
       continue;
     }
-    if (!a.playing || !b.playing || !a.visible || !b.visible) {
+    // The position moving forward at real-time speed (checked below) is what proves playback,
+    // so the stretch just before a pause or the end still counts. Hidden/background play never does.
+    if (!a.visible || !b.visible) {
       flags.add("background-or-paused");
       continue;
     }
