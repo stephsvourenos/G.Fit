@@ -69,6 +69,7 @@ export interface HeartbeatPayload {
   visible: boolean;
   buffering: boolean;
   playback_rate: number;
+  casting: boolean;
 }
 
 let queue: Promise<unknown> = Promise.resolve();

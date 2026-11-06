@@ -96,6 +96,37 @@ describe("qualified playback", () => {
     expect(e.qualifies).toBe(true);
   });
 
+  it("playing on a TV counts even with the phone locked", () => {
+    // 10-minute workout cast to a TV; the phone is locked (not visible) the whole time.
+    const hb = beats("s1", 600, (t) => t).map((h) => ({ ...h, visible: false, casting: true }));
+    const e = evaluateSession(session(), hb);
+    expect(e.creditedSec).toBe(600);
+    expect(e.flags).toContain("cast-to-tv");
+  });
+
+  it("while casting, a long pause in heartbeats is accepted if the video kept real time", () => {
+    // Locked phone sends nothing for 5 minutes; position moved 300 s in 300 s.
+    const mk = (seq: number, t: number, cast = true) => ({
+      sessionId: "s1", seq, receivedAt: T0 + t * 1000, positionSec: t, playing: true, visible: !cast,
+      buffering: false, playbackRate: 1, casting: cast,
+    });
+    const e = evaluateSession(session({ durationSec: 600 }), [mk(0, 0), mk(1, 300), mk(2, 600)]);
+    expect(e.creditedSec).toBe(600);
+    // Same gaps without casting are not credited.
+    const off = evaluateSession(session({ durationSec: 600 }), [mk(0, 0, false), mk(1, 300, false), mk(2, 600, false)]);
+    expect(off.creditedSec).toBe(0);
+  });
+
+  it("casting can't be used to skip ahead", () => {
+    const mk = (seq: number, t: number, pos: number) => ({
+      sessionId: "s1", seq, receivedAt: T0 + t * 1000, positionSec: pos, playing: true, visible: false,
+      buffering: false, playbackRate: 1, casting: true,
+    });
+    const e = evaluateSession(session({ durationSec: 600 }), [mk(0, 0, 0), mk(1, 60, 590)]);
+    expect(e.creditedSec).toBe(0);
+    expect(e.flags).toContain("seek-detected");
+  });
+
   it("background playback is not credited", () => {
     const e = evaluateSession(session(), beats("s1", 600, (t) => t, { state: () => ({ visible: false }) }));
     expect(e.creditedSec).toBe(0);

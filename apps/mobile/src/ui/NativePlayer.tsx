@@ -44,11 +44,13 @@ export function NativePlayer({ w, playbackId, tokens, sessionId, coach }: {
     let playing = false;
     let buffering = false;
     let rate = 1;
+    let casting = false;
     try {
       pos = player.currentTime;
       playing = player.playing;
       buffering = player.status === "loading";
       rate = player.playbackRate;
+      casting = player.isExternalPlaybackActive === true; // AirPlay to a TV (iPhone)
     } catch {
       return; // player already released
     }
@@ -61,9 +63,10 @@ export function NativePlayer({ w, playbackId, tokens, sessionId, coach }: {
       visible: visible.current,
       buffering,
       playbackRate: rate,
+      casting,
     };
     if (sessionId) {
-      sendHeartbeat(sessionId, { seq: hb.seq, position_sec: pos, playing, visible: hb.visible, buffering, playback_rate: rate });
+      sendHeartbeat(sessionId, { seq: hb.seq, position_sec: pos, playing, visible: hb.visible, buffering, playback_rate: rate, casting });
     }
     setBeats((b) => [...b, hb]);
   };
@@ -73,6 +76,7 @@ export function NativePlayer({ w, playbackId, tokens, sessionId, coach }: {
     beat();
     if (!isPlaying) h.setProgress(w.id, Math.floor(player.currentTime));
   });
+  useEventListener(player, "isExternalPlaybackActiveChange", () => beat());
   useEventListener(player, "playToEnd", () => {
     beat();
     setEnded(true);

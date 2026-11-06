@@ -1,6 +1,6 @@
 # BUILD_STATUS
 
-_Last updated: 5 Nov 2026 — Phase 2 (video) built; waiting on your TV casting check_
+_Last updated: 7 Nov 2026 — Phase 2 (video) complete on the web; TV casting confirmed_
 
 ## Done (Phase 0)
 - Monorepo (pnpm workspaces): `apps/web` (Next.js 16), `apps/mobile` (Expo SDK 58), `packages/domain`,
@@ -109,11 +109,18 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
 - **Phone app (5 Nov 2026):** real household sign-in (stays signed in), real profiles, parent PIN checked by the
   server, signed Mux video in the phone's native player with server heartbeats; AirPlay button on iPhone. Leaving the
   app counts as "not watching". Still sign-in only — no purchase screens. Profiles/PIN are created on the website
-- Tests: unit 52/52 (incl. server-copy check), family journey 17/17, staff 14/14, video journey 8/8 playback checks (now incl.
+- Tests: unit 55/55 (incl. server-copy check and casting rules), family journey 17/17, staff 14/14, video journey 8/8 playback checks (now incl.
   session opened + heartbeats accepted), phone-app journey 8/8 (`e2e/mobile-journey.js`, web build: sign-in, wrong
   password, real profiles, wrong/right PIN, signed playback granted, teen workout refused)
-- Still to do in Phase 2: **your casting check on a real TV** (AirPlay / Chromecast) and a play-through on a real
-  phone (needs a test build — see "Testing on your phone" below)
+- **TV casting confirmed (7 Nov 2026):** you AirPlayed from an iPhone to a Samsung TV and it played. The server data
+  showed a locked/away phone made casting look like "not watching", so playback rules **v2** now count video playing on
+  a TV (AirPlay in Safari and the iPhone app, Chromecast in Chrome) even with the phone locked, accept longer heartbeat
+  gaps while casting (up to 15 min) and still apply the real-time / skip-ahead checks. Each heartbeat records `casting`,
+  and sessions are labelled "cast to tv" on the admin Playback page. Verified live: cast + locked phone → fully
+  credited; hidden and not casting → 0
+- **Fix (7 Nov 2026):** admin accounts saw "membership not active" on their own family (staff can read every family's
+  membership; the lookup now filters to the signed-in family)
+- Still to do in Phase 2: a play-through on a real phone in the app (needs a free test build)
 
 ## Blockers
 - None. Phone testing on a real device needs either the free Expo Go app + my dev server, or a free Expo (EAS) test

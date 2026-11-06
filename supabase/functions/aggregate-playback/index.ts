@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       const beats: Heartbeat[] = hbRows.map((h) => ({
         sessionId: h.session_id, seq: h.seq, receivedAt: new Date(h.received_at).getTime(),
         positionSec: Number(h.position_sec), playing: h.playing, visible: h.visible, buffering: h.buffering,
-        playbackRate: Number(h.playback_rate),
+        playbackRate: Number(h.playback_rate), casting: h.casting === true,
       }));
 
       const evals = evaluateSessions(sessions, beats, P);

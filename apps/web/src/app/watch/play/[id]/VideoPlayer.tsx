@@ -11,6 +11,19 @@ import { sendHeartbeat } from "@/lib/video";
 /** Every 12 seconds; a little more often on very short clips so they can be measured fairly. */
 const heartbeatMs = (durationSec: number) => Math.round(Math.max(5, Math.min(12, durationSec / 4)) * 1000);
 
+type CastAware = {
+  media?: {
+    nativeEl?: HTMLVideoElement & { webkitCurrentPlaybackTargetIsWireless?: boolean };
+    remote?: { state?: string; addEventListener?: (t: string, f: () => void) => void; removeEventListener?: (t: string, f: () => void) => void };
+  } | null;
+};
+
+/** True while the video is on a TV: AirPlay (Safari) or Chromecast / Remote Playback (Chrome). */
+function isCasting(el: MuxPlayerElement): boolean {
+  const media = (el as unknown as CastAware).media;
+  return media?.nativeEl?.webkitCurrentPlaybackTargetIsWireless === true || media?.remote?.state === "connected";
+}
+
 /**
  * Real, signed Mux playback. Every 12 seconds (and on play/pause/seek) the
  * player sends a heartbeat to the server, which stamps its own arrival time and
@@ -45,6 +58,7 @@ export function VideoPlayer({ w, playbackId, tokens, sessionId, instructorName }
       visible: document.visibilityState === "visible",
       buffering: (el.readyState ?? 4) < 3,
       playbackRate: el.playbackRate ?? 1,
+      casting: isCasting(el),
     };
     if (sessionId) {
       sendHeartbeat(sessionId, {
@@ -54,6 +68,7 @@ export function VideoPlayer({ w, playbackId, tokens, sessionId, instructorName }
         visible: hb.visible,
         buffering: hb.buffering,
         playback_rate: hb.playbackRate,
+        casting: hb.casting === true,
       });
     }
     setBeats((b) => [...b, hb]);
@@ -64,9 +79,18 @@ export function VideoPlayer({ w, playbackId, tokens, sessionId, instructorName }
     const t = window.setInterval(beat, heartbeatMs(duration));
     const onVis = () => beat();
     document.addEventListener("visibilitychange", onVis);
+    // Report straight away when the video moves to / from a TV.
+    const media = (ref.current as unknown as CastAware | null)?.media;
+    const native = media?.nativeEl;
+    native?.addEventListener("webkitcurrentplaybacktargetiswirelesschanged", onVis);
+    media?.remote?.addEventListener?.("connect", onVis);
+    media?.remote?.addEventListener?.("disconnect", onVis);
     return () => {
       window.clearInterval(t);
       document.removeEventListener("visibilitychange", onVis);
+      native?.removeEventListener("webkitcurrentplaybacktargetiswirelesschanged", onVis);
+      media?.remote?.removeEventListener?.("connect", onVis);
+      media?.remote?.removeEventListener?.("disconnect", onVis);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duration]);

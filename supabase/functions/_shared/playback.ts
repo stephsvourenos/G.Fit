@@ -38,6 +38,8 @@ export interface Heartbeat {
   visible: boolean;
   buffering: boolean;
   playbackRate: number;
+  /** Playing on a TV via AirPlay / Chromecast (the phone itself may be locked). */
+  casting?: boolean;
 }
 
 export interface PlaybackPolicy {
@@ -50,6 +52,11 @@ export interface PlaybackPolicy {
   accessibilityFraction: number;
   /** Longest gap between heartbeats that still counts as continuous playback. */
   maxHeartbeatGapSec: number;
+  /**
+   * While casting, a locked phone may stop sending heartbeats for a while. A
+   * longer gap is accepted then — the position must still advance at real-time speed.
+   */
+  maxCastHeartbeatGapSec: number;
   /** Position may not advance faster than this multiple of real time (+ tolerance). */
   maxPlaybackRate: number;
   seekToleranceSec: number;
@@ -65,7 +72,7 @@ export interface PlaybackPolicy {
 }
 
 export const DEFAULT_PLAYBACK_POLICY: PlaybackPolicy = {
-  version: "playback-v1",
+  version: "playback-v2",
   defaultFraction: 0.7,
   shortVideoRules: [
     { maxDurationSec: 120, fraction: 0.85 },
@@ -73,6 +80,7 @@ export const DEFAULT_PLAYBACK_POLICY: PlaybackPolicy = {
   ],
   accessibilityFraction: 0.5,
   maxHeartbeatGapSec: 45,
+  maxCastHeartbeatGapSec: 15 * 60,
   maxPlaybackRate: 1.25,
   seekToleranceSec: 2,
   maxCreditsPerWorkoutPerDay: 1,
@@ -99,7 +107,9 @@ export type PlaybackFlag =
   | "background-or-paused"
   | "buffering"
   | "concurrency-limit"
-  | "duplicate-profile-stream";
+  | "duplicate-profile-stream"
+  /** Informational: some of this session played on a TV. */
+  | "cast-to-tv";
 
 interface Interval {
   start: number;
@@ -172,18 +182,20 @@ export function extractSegments(
     const b = clean[i]!;
     const wallSec = (b.receivedAt - a.receivedAt) / 1000;
     const advanced = b.positionSec - a.positionSec;
+    const casting = a.casting === true && b.casting === true;
     if (advanced <= 0) {
       // Paused in place or seeked backwards: nothing new played.
       if (!a.playing || !b.playing) flags.add("background-or-paused");
       continue;
     }
-    if (wallSec > p.maxHeartbeatGapSec) {
+    if (wallSec > (casting ? p.maxCastHeartbeatGapSec : p.maxHeartbeatGapSec)) {
       flags.add("gap-too-long");
       continue;
     }
     // The position moving forward at real-time speed (checked below) is what proves playback,
-    // so the stretch just before a pause or the end still counts. Hidden/background play never does.
-    if (!a.visible || !b.visible) {
+    // so the stretch just before a pause or the end still counts. Hidden/background play never
+    // does — unless the video is on a TV, where a locked phone is normal.
+    if (!(a.visible || a.casting) || !(b.visible || b.casting)) {
       flags.add("background-or-paused");
       continue;
     }
@@ -197,7 +209,10 @@ export function extractSegments(
     }
     const start = Math.max(0, Math.min(a.positionSec, session.durationSec));
     const end = Math.max(0, Math.min(b.positionSec, session.durationSec));
-    if (end > start) segments.push({ pos: { start, end }, wall: { start: a.receivedAt, end: b.receivedAt } });
+    if (end > start) {
+      segments.push({ pos: { start, end }, wall: { start: a.receivedAt, end: b.receivedAt } });
+      if (a.casting || b.casting) flags.add("cast-to-tv");
+    }
   }
   return { segments, flags };
 }

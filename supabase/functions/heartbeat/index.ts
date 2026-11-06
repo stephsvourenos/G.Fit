@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
         visible: b.visible === true,
         buffering: b.buffering === true,
         playback_rate: Number.isFinite(rate) ? rate : 1,
+        casting: b.casting === true,
       }),
     });
     if (ins.ok && Array.isArray(ins.data) && ins.data.length === 0) return json({ ok: true, ignored: "duplicate" }, 202);
