@@ -143,10 +143,15 @@ function LiveProvider({ children }: { children: React.ReactNode }) {
   }, [db]);
 
   const load = useCallback(async () => {
+    const { data: u } = await db.auth.getUser();
+    const hh = await db.from("households").select("id").eq("owner_user_id", u.user?.id ?? "").maybeSingle();
+    if (hh.error) throw hh.error;
+    const householdId = hh.data?.id ?? "";
+    // Filter to our own household: staff accounts can read every household's membership.
     const [profRes, wkRes, entRes] = await Promise.all([
-      db.from("profiles").select("*").order("created_at"),
+      db.from("profiles").select("*").eq("household_id", householdId).order("created_at"),
       db.from("workouts").select("id, slug"),
-      db.from("entitlements").select("*").maybeSingle(),
+      db.from("entitlements").select("*").eq("household_id", householdId).maybeSingle(),
     ]);
     if (profRes.error) throw profRes.error;
     if (wkRes.error) throw wkRes.error;

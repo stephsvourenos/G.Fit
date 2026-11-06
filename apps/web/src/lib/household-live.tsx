@@ -110,7 +110,8 @@ export function LiveHouseholdProvider({ children }: { children: React.ReactNode 
       db.rpc("household_pin_is_set"),
       db.from("profiles").select("*").order("created_at"),
       db.from("workouts").select("id, slug"),
-      db.from("entitlements").select("*").maybeSingle(),
+      // Filter to our own household: staff accounts can read every household's membership.
+      db.from("entitlements").select("*").eq("household_id", hh.id).maybeSingle(),
     ]);
     if (pinSet.error) throw pinSet.error;
     if (profRes.error) throw profRes.error;
