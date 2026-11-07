@@ -980,6 +980,148 @@ function currentStreak(completedDays, today) {
   }
   return streak;
 }
+
+// src/aba.ts
+var BSB = /^\d{3}-?\d{3}$/;
+var ACCOUNT = /^[0-9A-Za-z-]{1,9}$/;
+function abaText(s) {
+  return s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9 &'()*+,\-./:;?@]/g, " ").replace(/\s+/g, " ").trim();
+}
+var left = (s, n) => abaText(s).slice(0, n).padEnd(n, " ");
+var right = (s, n) => s.slice(-n).padStart(n, " ");
+var zeros = (v, n) => {
+  const s = String(v);
+  if (s.length > n) throw new Error(`Amount ${v} does not fit in ${n} digits`);
+  return s.padStart(n, "0");
+};
+var bsb = (s) => {
+  if (!BSB.test(s)) throw new Error(`Invalid BSB "${s}" (expected 6 digits, e.g. 062-000)`);
+  const d = s.replace("-", "");
+  return `${d.slice(0, 3)}-${d.slice(3)}`;
+};
+var account = (s) => {
+  const a = s.replace(/[\s]/g, "");
+  if (!ACCOUNT.test(a)) throw new Error(`Invalid account number "${s}" (1\u20139 digits)`);
+  return right(a, 9);
+};
+function validateAbaRemitter(r) {
+  const errs = [];
+  if (!/^[A-Z]{3}$/.test(r.bankCode)) errs.push("Bank code must be 3 letters (e.g. CBA, NAB, WBC, ANZ)");
+  if (!/^\d{6}$/.test(r.userId)) errs.push("Direct Entry User ID must be 6 digits (from your bank)");
+  if (!abaText(r.userName)) errs.push("Direct entry user name is required");
+  if (!BSB.test(r.bsb)) errs.push("Your BSB must be 6 digits");
+  if (!ACCOUNT.test(r.accountNumber.replace(/\s/g, ""))) errs.push("Your account number must be 1\u20139 digits");
+  if (!abaText(r.accountTitle)) errs.push("Your account name is required");
+  if (!abaText(r.remitterName)) errs.push("Remitter name is required");
+  return errs;
+}
+function detail(p, r) {
+  const line = "1" + bsb(p.bsb) + account(p.account) + " " + p.code + zeros(p.amount, 10) + left(p.title, 32) + left(p.reference, 18) + bsb(r.bsb) + account(r.accountNumber) + left(r.remitterName, 16) + "00000000";
+  return line;
+}
+var ddmmyy = (iso) => `${iso.slice(8, 10)}${iso.slice(5, 7)}${iso.slice(2, 4)}`;
+function generateAba(args) {
+  const { remitter: r, payments, processingDate } = args;
+  const errs = validateAbaRemitter(r);
+  if (errs.length) throw new Error(errs.join("; "));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(processingDate)) throw new Error("Processing date must be YYYY-MM-DD");
+  if (payments.length === 0) throw new Error("No payments");
+  const lines = [];
+  lines.push(
+    "0" + " ".repeat(17) + "01" + r.bankCode + " ".repeat(7) + left(r.userName, 26) + zeros(Number(r.userId), 6) + left(args.description, 12) + ddmmyy(processingDate) + " ".repeat(40)
+  );
+  let credit = 0;
+  for (const p of payments) {
+    if (!Number.isSafeInteger(p.amountMinor) || p.amountMinor <= 0) throw new Error(`Payment to ${p.accountTitle} must be a positive whole number of cents`);
+    if (!abaText(p.accountTitle)) throw new Error("Every payee needs an account name");
+    lines.push(detail({ bsb: p.bsb, account: p.accountNumber, title: p.accountTitle, code: "50", amount: p.amountMinor, reference: p.lodgementReference }, r));
+    credit += p.amountMinor;
+  }
+  let debit = 0;
+  if (r.selfBalancing) {
+    lines.push(detail({ bsb: r.bsb, account: r.accountNumber, title: r.accountTitle, code: r.balancingDebitCode ?? "13", amount: credit, reference: args.description }, r));
+    debit = credit;
+  }
+  const count = lines.length - 1;
+  lines.push(
+    "7999-999" + " ".repeat(12) + zeros(Math.abs(credit - debit), 10) + zeros(credit, 10) + zeros(debit, 10) + " ".repeat(24) + zeros(count, 6) + " ".repeat(40)
+  );
+  for (const l of lines) if (l.length !== 120) throw new Error(`Internal error: line length ${l.length}`);
+  return { text: lines.join("\r\n") + "\r\n", creditTotalMinor: credit, debitTotalMinor: debit, detailCount: count };
+}
+function parseAba(text) {
+  const lines = text.split(/\r\n/).filter((l) => l.length > 0);
+  const details = lines.filter((l) => l[0] === "1").map((l) => ({
+    bsb: l.slice(1, 8),
+    accountNumber: l.slice(8, 17).trim(),
+    transactionCode: l.slice(18, 20),
+    amountMinor: Number(l.slice(20, 30)),
+    accountTitle: l.slice(30, 62).trim(),
+    lodgementReference: l.slice(62, 80).trim()
+  }));
+  const t = lines.find((l) => l[0] === "7") ?? "";
+  return {
+    lineLengthsOk: lines.every((l) => l.length === 120),
+    header: { bankCode: lines[0]?.slice(20, 23), userName: lines[0]?.slice(30, 56).trim(), userId: lines[0]?.slice(56, 62), date: lines[0]?.slice(74, 80) },
+    details,
+    totals: { net: Number(t.slice(20, 30)), credit: Number(t.slice(30, 40)), debit: Number(t.slice(40, 50)), count: Number(t.slice(74, 80)) }
+  };
+}
+function reconcilePayments(payments, lines) {
+  const used = /* @__PURE__ */ new Set();
+  const results = payments.map((p) => {
+    const ref = abaText(p.lodgementReference);
+    const idx = lines.findIndex(
+      (l, i) => !used.has(i) && Math.abs(l.amountMinor) === p.amountMinor && abaText(l.description).includes(ref)
+    );
+    if (idx >= 0) used.add(idx);
+    return { key: p.key, amountMinor: p.amountMinor, matched: idx >= 0, line: idx >= 0 ? lines[idx] : void 0 };
+  });
+  return { results, allMatched: results.every((r) => r.matched), matchedTotalMinor: results.filter((r) => r.matched).reduce((a, r) => a + r.amountMinor, 0) };
+}
+function parseBankCsv(csv) {
+  const rows = csv.split(/\r?\n/).filter((r) => r.trim()).map((r) => {
+    const out = [];
+    let cur = "", q = false;
+    for (const ch of r) {
+      if (ch === '"') q = !q;
+      else if (ch === "," && !q) {
+        out.push(cur);
+        cur = "";
+      } else cur += ch;
+    }
+    out.push(cur);
+    return out.map((c) => c.trim());
+  });
+  if (rows.length === 0) return [];
+  const head = rows[0].map((h) => h.toLowerCase());
+  const hasHeader = head.some((h) => /date|amount|desc|narr|ref|debit|credit/.test(h));
+  const col = (re, fallback) => hasHeader ? head.findIndex((h) => re.test(h)) : fallback;
+  const iDate = col(/date/, 0), iAmt = col(/amount|debit/, 1), iDesc = col(/desc|narr|ref|detail/, 2);
+  return rows.slice(hasHeader ? 1 : 0).flatMap((r) => {
+    const raw = (r[iAmt] ?? "").replace(/[$,\s]/g, "");
+    const amt = Math.round(Math.abs(Number(raw)) * 100);
+    if (!Number.isFinite(amt) || amt === 0) return [];
+    return [{ date: r[iDate] ?? "", amountMinor: amt, description: r[iDesc] ?? r.join(" ") }];
+  });
+}
+function reconcileBatch(payments, lines, batchRef) {
+  const total = payments.reduce((a, p) => a + p.amountMinor, 0);
+  const each = reconcilePayments(payments, lines);
+  if (each.allMatched) return { ...each, mode: "per-payment", totalMinor: total };
+  const ref = abaText(batchRef);
+  const lump = lines.find((l) => Math.abs(l.amountMinor) === total && (!ref || abaText(l.description).includes(ref))) ?? lines.find((l) => Math.abs(l.amountMinor) === total);
+  if (lump) {
+    return {
+      results: payments.map((p) => ({ key: p.key, amountMinor: p.amountMinor, matched: true, line: lump })),
+      allMatched: true,
+      matchedTotalMinor: total,
+      mode: "lump-sum",
+      totalMinor: total
+    };
+  }
+  return { ...each, mode: "unmatched", totalMinor: total };
+}
 export {
   AGE_BANDS,
   AGE_BAND_LABEL,
@@ -993,6 +1135,7 @@ export {
   DEFAULT_REFERRAL_TERMS,
   DEFAULT_ROYALTY_POLICY,
   InMemoryEventStore,
+  abaText,
   acceptsNewReferrals,
   addMonths,
   aggregateQualifiedViews,
@@ -1019,6 +1162,7 @@ export {
   filterWorkouts,
   formatDuration,
   formatMoney,
+  generateAba,
   gstIncludedMinor,
   hasStreamingAccess,
   invoiceNetMinor,
@@ -1028,16 +1172,21 @@ export {
   mergeIntervals,
   money,
   monthsBetween,
+  parseAba,
+  parseBankCsv,
   payoutDueDate,
   pct,
   processBillingEvent,
   receiptsForMonth,
   recogniseInvoice,
+  reconcileBatch,
+  reconcilePayments,
   refundNetMinor,
   refundReversals,
   requiredFraction,
   royaltyEligibleInMonth,
   runMonthEnd,
   runRoyaltyPool,
-  sumMinor
+  sumMinor,
+  validateAbaRemitter
 };
