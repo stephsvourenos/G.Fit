@@ -1,7 +1,7 @@
 import { formatMoney } from "@app/domain";
 import { creators, demoFinance } from "@app/mock-data";
 import { Badge, Kpi, PageHeader, Table } from "@/components/AdminShell";
-import { creatorBalances } from "@/lib/finance";
+import { creatorBalances } from "@/lib/finance-demo";
 
 export default function LedgerPage() {
   const f = demoFinance();

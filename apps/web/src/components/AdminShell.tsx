@@ -8,7 +8,7 @@ import { ROLE_LABEL, useStaffSession } from "@/lib/staff";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 
 /** Pages that already run on the real database; the rest still show sample figures. */
-const LIVE_PAGES = ["/admin/content/", "/admin/audit/", "/admin/playback/", "/admin/subscribers/"];
+const LIVE_PAGES = ["/admin/content/", "/admin/audit/", "/admin/playback/", "/admin/subscribers/", "/admin/royalties/", "/admin/payouts/", "/admin/creators/", "/admin/referrals/"];
 
 export const ADMIN_NAV: Array<[string, string, string?]> = [
   ["/admin/", "Overview"],

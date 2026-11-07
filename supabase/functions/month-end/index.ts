@@ -209,6 +209,29 @@ Deno.serve(async (req) => {
       return json({ error: "A month can only be finalised after it has ended" }, 400);
     }
 
+    // ---------- payouts (final ledger only) ----------
+    if (action === "payables" || action === "create-payout-batch") {
+      if (who.cron) return json({ error: "Not available to the scheduler" }, 403);
+      const asOf: string = /^\d{4}-\d{2}-\d{2}$/.test(body.asOf ?? "") ? body.asOf
+        : new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());
+      const inp = await loadInputs("9999-12"); // every final entry
+      const payables = [...new Set(inp.priorEntries.map((e: any) => e.creatorId))].sort().map((creatorId) => {
+        const terms = inp.contracts.filter((c: any) => c.creatorId === creatorId).sort((a: any, b: any) => b.version - a.version)[0]?.payout ??
+          DEFAULT_PAYOUT_TERMS;
+        const p = computePayable({ creatorId, ledger: inp.priorEntries, batches: inp.batches, terms, asOfDate: asOf });
+        return { creator_id: creatorId, status: p.status, due_minor: p.dueMinor, min_payout_minor: terms.minPayoutMinor, entry_ids: p.dueEntries.map((e: any) => e.id) };
+      });
+      if (action === "payables") return json({ ok: true, asOf, payables });
+      const items = payables.filter((p) => p.status === "payable").map((p) => ({ creator_id: p.creator_id, amount_minor: p.due_minor, entry_ids: p.entry_ids }));
+      if (!items.length) return json({ error: "Nothing is payable yet (balances below minimum or not yet due are carried forward)" }, 409);
+      const r = await asServer("rpc/create_payout_batch", {
+        method: "POST",
+        body: JSON.stringify({ p_items: items, p_created_by: who.id, p_note: `Payout run as of ${asOf}` }),
+      });
+      if (!r.ok) return json({ error: r.data?.message ?? "Could not create batch" }, 409);
+      return json({ ok: true, batch_id: r.data, items });
+    }
+
     const now = new Date().toISOString();
     const inputs = await loadInputs(month);
     const status = action === "final" ? "final" : "provisional";

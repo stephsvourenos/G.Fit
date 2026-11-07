@@ -2,7 +2,7 @@ import Link from "next/link";
 import { formatMoney, sumMinor } from "@app/domain";
 import { demoFinance, households, workouts } from "@app/mock-data";
 import { Badge, Kpi, PageHeader } from "@/components/AdminShell";
-import { creatorBalances } from "@/lib/finance";
+import { creatorBalances } from "@/lib/finance-demo";
 
 export default function Overview() {
   const f = demoFinance();
