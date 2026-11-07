@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { brand } from "@app/config";
 import { PrototypeBanner } from "@/components/PrototypeBanner";
+import { ReferralCapture } from "@/components/ReferralCapture";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-AU" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <PrototypeBanner />
+        <ReferralCapture />
         {children}
       </body>
     </html>
