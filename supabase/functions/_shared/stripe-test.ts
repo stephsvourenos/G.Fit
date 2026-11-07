@@ -2,10 +2,11 @@
 // Stripe key is a TEST key and APP_ENV is not production. Uses Stripe's official
 // test cards (pm_card_visa etc.). Callers must already be admin/finance.
 import { asServer } from "./http.ts";
-import { isProduction, PLAN_LOOKUP_KEYS, stripe, type Plan } from "./stripe.ts";
+import { isProduction, PLAN_LOOKUP_KEYS, stripe, TRIAL_DAYS, type Plan } from "./stripe.ts";
 
 const CARDS: Record<string, string> = {
   visa: "pm_card_visa",
+  mastercard: "pm_card_mastercard",
   decline: "pm_card_chargeDeclined", // declined when attaching
   fail_later: "pm_card_chargeCustomerFail", // attaches fine, charges fail
 };
@@ -27,15 +28,22 @@ export async function runTestScenario(b: Record<string, any>) {
 
   switch (b.action) {
     case "subscribe": {
+      let pmId: string;
       try {
-        await setCard(b.card ?? "visa");
+        pmId = await setCard(b.card ?? "visa");
       } catch (e) {
         return { declined: true, message: (e as Error).message };
       }
       const meta = { household_id: household, ...(b.referral_code ? { referral_code: b.referral_code } : {}) };
       const s = await stripe("/subscriptions", {
         method: "POST",
-        params: { customer: cust, items: [{ price: await price(b.plan ?? "monthly") }], metadata: meta, payment_behavior: "allow_incomplete" },
+        params: {
+          customer: cust,
+          items: [{ price: await price(b.plan ?? "monthly") }],
+          metadata: meta,
+          payment_behavior: "allow_incomplete",
+          ...(b.trial ? { trial_period_days: TRIAL_DAYS, default_payment_method: pmId } : {}),
+        },
       });
       return { subscription: s.id, status: s.status };
     }
@@ -53,6 +61,8 @@ export async function runTestScenario(b: Record<string, any>) {
       return { cancel_at_period_end: (await stripe(`/subscriptions/${subId}`, { method: "POST", params: { cancel_at_period_end: true } })).cancel_at_period_end };
     case "resume":
       return { cancel_at_period_end: (await stripe(`/subscriptions/${subId}`, { method: "POST", params: { cancel_at_period_end: false } })).cancel_at_period_end };
+    case "end_trial":
+      return { status: (await stripe(`/subscriptions/${subId}`, { method: "POST", params: { trial_end: "now" } })).status };
     case "cancel_now":
       return { status: (await stripe(`/subscriptions/${subId}`, { method: "DELETE" })).status };
     case "refund_latest": {

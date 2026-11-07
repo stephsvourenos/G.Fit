@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { hasStreamingAccess, type HouseholdEntitlement } from "@app/domain";
 import {
   openPortal,
+  planFromLookupKey,
   PLANS,
   savedReferral,
   startCheckout,
+  trialDaysAvailable,
   type Plan,
 } from "@/lib/billing";
 import { supabase } from "@/lib/supabase";
@@ -29,6 +31,9 @@ export function MembershipCard({
 }) {
   const active = hasStreamingAccess(entitlement, new Date());
   const paid = entitlement?.provider === "stripe";
+  const trialing = paid && entitlement?.status === "trialing";
+  const [trialDays, setTrialDays] = useState(0);
+  const [myPlan, setMyPlan] = useState<Plan>();
   const [plan, setPlan] = useState<Plan>("monthly");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,6 +51,32 @@ export function MembershipCard({
     const saved = savedReferral();
     if (saved) setCode(saved); // eslint-disable-line react-hooks/set-state-in-effect
   }, []);
+
+  // Can this family still have a free trial? (One per family and per card.)
+  useEffect(() => {
+    if (paid && active) return;
+    trialDaysAvailable().then(setTrialDays);
+  }, [paid, active]);
+
+  // During a trial, show which plan starts afterwards (from our own invoice record).
+  useEffect(() => {
+    if (!trialing) return;
+    const db = supabase();
+    db.from("households")
+      .select("id")
+      .maybeSingle()
+      .then(({ data: hh }) =>
+        db
+          .from("billing_invoices")
+          .select("price_lookup_key")
+          .eq("household_id", hh?.id ?? "")
+          .order("updated_at", { ascending: false })
+          .limit(1),
+      )
+      .then(({ data }) =>
+        setMyPlan(planFromLookupKey(data?.[0]?.price_lookup_key)),
+      );
+  }, [trialing]);
 
   // After paying, Stripe tells our server within a few seconds; wait for it, then refresh.
   useEffect(() => {
@@ -106,16 +137,24 @@ export function MembershipCard({
           ) : entitlement && (active || paid) ? (
             <>
               <div className="font-display mt-1 text-2xl">
-                {paid ? "Family membership" : "Test membership"}
+                {trialing
+                  ? "Free trial"
+                  : paid
+                    ? "Family membership"
+                    : "Test membership"}
               </div>
               <div className="text-sm text-muted">
-                {entitlement.status === "past_due"
-                  ? "Your last payment didn’t go through — please update your card. Videos keep working for a few days."
-                  : active && entitlement.cancelAtPeriodEnd
-                    ? `Cancelled — videos keep working until ${fmt(entitlement.currentPeriodEnd)}. Changed your mind? Use “Manage membership”.`
-                    : active
-                      ? `${paid ? "Current period ends" : "Active until"} ${fmt(entitlement.currentPeriodEnd)}`
-                      : `Ended ${fmt(entitlement.currentPeriodEnd)} — videos paused`}
+                {trialing
+                  ? entitlement.cancelAtPeriodEnd
+                    ? `Trial cancelled — videos keep working until ${fmt(entitlement.currentPeriodEnd)} and you won’t be charged.`
+                    : `Your free trial ends on ${fmt(entitlement.currentPeriodEnd)}. Then ${myPlan ? `${PLANS[myPlan].price} ${PLANS[myPlan].note.split(" — ")[0]}` : "your chosen plan"} (GST included) unless you cancel before then — cancelling during the trial costs nothing.`
+                  : entitlement.status === "past_due"
+                    ? "Your last payment didn’t go through — please update your card. Videos keep working for a few days."
+                    : active && entitlement.cancelAtPeriodEnd
+                      ? `Cancelled — videos keep working until ${fmt(entitlement.currentPeriodEnd)}. Changed your mind? Use “Manage membership”.`
+                      : active
+                        ? `${paid ? "Current period ends" : "Active until"} ${fmt(entitlement.currentPeriodEnd)}`
+                        : `Ended ${fmt(entitlement.currentPeriodEnd)} — videos paused`}
               </div>
             </>
           ) : (
@@ -127,7 +166,7 @@ export function MembershipCard({
         <span
           className={`rounded-full px-3 py-1 text-xs font-bold ${active ? "bg-mint/15 text-mint" : "bg-coral/20 text-coral-2"}`}
         >
-          {active ? "Active" : "Inactive"}
+          {trialing ? "Free trial" : active ? "Active" : "Inactive"}
         </span>
       </div>
 
@@ -193,12 +232,18 @@ export function MembershipCard({
             >
               {busy
                 ? "Opening secure checkout…"
-                : `Join — ${PLANS[plan].price}`}
+                : trialDays
+                  ? `Start ${trialDays}-day free trial`
+                  : `Join — ${PLANS[plan].price}`}
             </button>
+            <p className="mt-3 max-w-xl text-sm text-paper/80">
+              {trialDays
+                ? `Free for ${trialDays} days, then ${PLANS[plan].price} ${PLANS[plan].note.split(" — ")[0]} (GST included), renewing until you cancel. A card is needed to start. We’ll remind you before your trial ends, and you can cancel online anytime — cancel during the trial and you pay nothing. One free trial per family.`
+                : `${PLANS[plan].price} ${PLANS[plan].note.split(" — ")[0]} (GST included), charged today and renewing until you cancel. Cancel online anytime; access continues to the end of the paid period.`}
+            </p>
             <p className="mt-2 text-xs text-muted">
               Test mode: no real money moves. Use card 4242 4242 4242 4242, any
-              future expiry date and any 3-digit code. Cancel anytime; access
-              continues to the end of the paid period.
+              future expiry date and any 3-digit code.
             </p>
           </div>
         )

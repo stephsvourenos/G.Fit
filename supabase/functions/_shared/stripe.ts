@@ -16,6 +16,9 @@ export const PLAN_LOOKUP_KEYS = {
 } as const;
 export type Plan = keyof typeof PLAN_LOOKUP_KEYS;
 
+/** Free trial length (days). One trial per household and per card. 0 switches trials off. */
+export const TRIAL_DAYS = 7;
+
 export function assertSafeKey() {
   if (!KEY) throw new Error("Stripe is not configured (STRIPE_SECRET_KEY missing)");
   if (KEY.startsWith("sk_live_") || KEY.startsWith("rk_live_")) {
@@ -139,7 +142,85 @@ export async function syncSubscription(subscriptionId: string): Promise<string> 
     if (curSub && curSub.created > sub.created) return "kept-newer";
   }
   await upsert("entitlements", "household_id", next);
-  return `entitlement:${sub.status}`;
+  let trial = "";
+  if (sub.status === "trialing") {
+    trial = " " + (await enforceOneTrial(sub, household));
+    // Reminder owed once the trial is within 3 days of ending (doesn't rely on Stripe's own timing).
+    if (sub.trial_end && sub.trial_end * 1000 - Date.now() <= 3 * 86_400_000) trial += " " + (await queueTrialEndingNotice(sub.id));
+  }
+  return `entitlement:${sub.status}${trial}`;
+}
+
+/* ---------------- free trial: one per household and per card ---------------- */
+
+/** Has this household (or its Stripe customer) ever had a trial or a subscription? Then no new trial. */
+export async function trialEligible(household: string, customer?: string): Promise<boolean> {
+  if (!TRIAL_DAYS) return false;
+  const claims = await asServer(`trial_claims?household_id=eq.${household}&select=id&limit=1`);
+  if (claims.data?.length) return false;
+  if (customer) {
+    const subs = await stripe("/subscriptions", { params: { customer, status: "all", limit: 1 } });
+    if (subs.data?.length) return false;
+  }
+  return true;
+}
+
+/**
+ * Backstop run whenever a trialing subscription is seen. If the same card (Stripe's card
+ * fingerprint — never the number) or the same household already had a trial, the trial is
+ * ended now so normal billing starts. This is disclosed at sign-up ("one free trial per family").
+ */
+async function enforceOneTrial(sub: any, household: string): Promise<string> {
+  const seen = await asServer(`trial_claims?subscription_id=eq.${sub.id}&select=outcome`);
+  if (seen.data?.length) return `trial:${seen.data[0].outcome}`;
+  let fingerprint: string | null = null;
+  const pmId = typeof sub.default_payment_method === "string" ? sub.default_payment_method : sub.default_payment_method?.id;
+  if (pmId) fingerprint = (await stripe(`/payment_methods/${pmId}`)).card?.fingerprint ?? null;
+  const priorHousehold = await asServer(`trial_claims?household_id=eq.${household}&subscription_id=neq.${sub.id}&select=id&limit=1`);
+  const priorCard = fingerprint
+    ? await asServer(`trial_claims?card_fingerprint=eq.${encodeURIComponent(fingerprint)}&household_id=neq.${household}&select=id&limit=1`)
+    : { data: [] };
+  let outcome = "granted";
+  if (priorHousehold.data?.length) outcome = "refused-household-reused";
+  else if (priorCard.data?.length) outcome = "refused-card-reused";
+  await asServer("trial_claims", {
+    method: "POST",
+    headers: { Prefer: "return=minimal,resolution=ignore-duplicates" },
+    body: JSON.stringify({
+      household_id: household, card_fingerprint: fingerprint, subscription_id: sub.id,
+      trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null, outcome,
+    }),
+  });
+  if (outcome !== "granted") {
+    await stripe(`/subscriptions/${sub.id}`, { method: "POST", params: { trial_end: "now", proration_behavior: "none" } });
+  }
+  return `trial:${outcome}`;
+}
+
+/** Stripe's "trial ends in 3 days" event → queue the reminder we owe the family (sent by the email service). */
+export async function queueTrialEndingNotice(subscriptionId: string): Promise<string> {
+  const sub = await stripe(`/subscriptions/${subscriptionId}`, { params: { expand: ["items.data.price"] } });
+  const household = await householdForCustomer(sub.customer, sub.metadata?.household_id);
+  if (!household || sub.status !== "trialing" || !sub.trial_end) return "no-notice";
+  const price = sub.items?.data?.[0]?.price;
+  await asServer("member_notices", {
+    method: "POST",
+    headers: { Prefer: "return=minimal,resolution=ignore-duplicates" },
+    body: JSON.stringify({
+      household_id: household,
+      kind: "trial_ending",
+      dedupe_key: `trial_ending:${sub.id}`,
+      due_at: new Date().toISOString(),
+      detail: {
+        trial_end: new Date(sub.trial_end * 1000).toISOString(),
+        amount_minor: price?.unit_amount ?? null,
+        currency: price?.currency ?? "aud",
+        interval: price?.recurring?.interval ?? null,
+        cancel_at_period_end: sub.cancel_at_period_end === true,
+      },
+    }),
+  });
+  return "notice:trial_ending";
 }
 
 export async function syncInvoice(invoiceId: string): Promise<string> {

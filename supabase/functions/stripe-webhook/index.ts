@@ -3,7 +3,7 @@
 // arrive late, twice, or out of order). A failure returns 500 so Stripe retries.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { asServer, json } from "../_shared/http.ts";
-import { isProduction, syncCharge, syncInvoice, syncSubscription, verifyStripeSignature } from "../_shared/stripe.ts";
+import { isProduction, queueTrialEndingNotice, syncCharge, syncInvoice, syncSubscription, verifyStripeSignature } from "../_shared/stripe.ts";
 
 const SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
 
@@ -23,10 +23,12 @@ Deno.serve(async (req) => {
   let outcome = "ignored";
   try {
     if (type === "checkout.session.completed" && obj.subscription) outcome = await syncSubscription(obj.subscription);
-    else if (type.startsWith("customer.subscription.")) outcome = await syncSubscription(obj.id);
+    else if (type === "customer.subscription.trial_will_end") {
+      outcome = (await syncSubscription(obj.id)) + " " + (await queueTrialEndingNotice(obj.id));
+    } else if (type.startsWith("customer.subscription.")) outcome = await syncSubscription(obj.id);
     else if (type.startsWith("invoice.")) outcome = await syncInvoice(obj.id);
     else if (type === "charge.refunded") outcome = await syncCharge(obj.id);
-    else if (type.startsWith("refund.") && obj.charge) outcome = await syncCharge(obj.charge);
+    else if ((type.startsWith("refund.") || type === "charge.refund.updated") && obj.charge) outcome = await syncCharge(obj.charge);
   } catch (e) {
     console.error(type, e);
     return json({ error: "processing failed; Stripe will retry" }, 500);

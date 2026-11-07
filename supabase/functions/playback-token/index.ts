@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     const profile = prof.data?.[0];
     if (!profile) return json({ allowed: false, reason: "not-your-profile" }, 403);
 
-    const ent = await asUser(auth, `entitlements?household_id=eq.${profile.household_id}&select=status,current_period_end,grace_days`);
+    const ent = await asUser(auth, `entitlements?household_id=eq.${profile.household_id}&select=provider,status,current_period_end,grace_days`);
     if (!hasAccess(ent.data?.[0])) return json({ allowed: false, reason: "no-entitlement" }, 402);
 
     if (profile.pin_protected) {
@@ -67,6 +67,9 @@ Deno.serve(async (req) => {
         creator_id: w.creator_id,
         device_id: typeof device_id === "string" ? device_id.slice(0, 64) : "unknown",
         duration_sec: Math.max(1, Math.round(w.video_duration_sec ?? w.duration_sec)),
+        // Paying, trialling or test grant at the time of viewing — only paid viewing earns royalties.
+        membership_status: ent.data?.[0]?.status ?? null,
+        membership_provider: ent.data?.[0]?.provider ?? null,
       }),
     });
     const sessionId = sess.data?.[0]?.id;

@@ -19,4 +19,4 @@ heartbeat data kept 90 days; captions required at launch; no offline downloads i
 | Date | Decision | Detail |
 |---|---|---|
 | 7 Nov 2026 | **No Stripe Tax** | Prices are set GST-inclusive in Stripe; GST is recorded as 1/11 of each payment for reporting. Revisit only if selling outside Australia. |
-| 7 Nov 2026 | Free trial — **open** | Analysis given in chat 7 Nov 2026; awaiting your choice. Technically a one-line change either way (Checkout `trial_period_days`). |
+| 7 Nov 2026 | **Free trial: yes, compliant** | 7 days, card required (cards / Apple Pay / Google Pay only), one per family and per card, both plans. Terms shown before sign-up; cancel online anytime (no charge during trial); reminder queued before the trial ends; trial viewing excluded from royalties. Length is one setting (`TRIAL_DAYS`). |

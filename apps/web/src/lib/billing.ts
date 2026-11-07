@@ -48,3 +48,13 @@ async function call(fn: string, body: Record<string, unknown>): Promise<{ url?: 
 
 export const startCheckout = (plan: Plan, referralCode?: string) => call("billing-checkout", { plan, referral_code: referralCode });
 export const openPortal = () => call("billing-portal", {});
+
+/** How many free-trial days this family can still have (0 = already had one). */
+export async function trialDaysAvailable(): Promise<number> {
+  const r = (await call("billing-checkout", { check: true })) as { trialDays?: number };
+  return typeof r.trialDays === "number" ? r.trialDays : 0;
+}
+
+/** Map a Stripe price lookup key back to our plan. */
+export const planFromLookupKey = (k?: string | null): Plan | undefined =>
+  k?.includes("annual") ? "annual" : k?.includes("monthly") ? "monthly" : undefined;

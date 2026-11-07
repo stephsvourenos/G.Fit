@@ -158,3 +158,19 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
 - Test-only tool (admin, test key, non-production only): `billing-reconcile` `{test:{…}}` drives Stripe test cards
 - Not yet: Stripe Tax (paid add-on — decide with your accountant before launch); trial/promo codes (Checkout accepts
   promotion codes once you create them); phone app stays sign-in only
+
+### Free trial (7 Nov 2026) — your decision: trial, kept compliant
+- **7 days free, card required, one per family and per card** (Stripe card fingerprint — never the card number). Checkout
+  is cards only (incl. Apple Pay / Google Pay) so the per-card rule can't be bypassed via buy-now-pay-later
+- **Disclosure:** account page and Stripe's checkout both state "Free for 7 days. Then A$14.99 per month (GST included),
+  first charged on <date>… cancel before <date> and you won't be charged. One free trial per family."
+- **Cancel during trial:** online via Manage membership; access continues to trial end; no charge
+- **Reminder:** queued in `member_notices` once a trial is within 3 days of ending (from Stripe's `trial_will_end`
+  event, any subscription update, and the nightly check — never twice). **Sending the email needs the email service
+  (Phase 6) and must be live before launch** — the law's reminder rules start 1 July 2027
+- **Royalties:** each viewing records whether the family was paying, trialling or on a test grant; Phase 4 counts paid only
+- Tested live: eligible/not-eligible check; disclosure on Stripe's page; trial start (A$0); same card on another family
+  → trial refused and A$14.99 charged; cancel during trial; reminder queued with date/price; trial viewing labelled;
+  trial end → first annual charge A$149.99 → active
+- Fixed during this work: "Manage membership" opened another family's billing for admin accounts; Stripe's default
+  "change quantity" switched off in the portal
