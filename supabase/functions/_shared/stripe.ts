@@ -109,7 +109,14 @@ export async function syncSubscription(subscriptionId: string): Promise<string> 
   const sub = await stripe(`/subscriptions/${subscriptionId}`);
   const household = await householdForCustomer(sub.customer, sub.metadata?.household_id);
   if (!household) return "unknown-household";
-  const periodEnd = sub.current_period_end ?? sub.items?.data?.[0]?.current_period_end;
+  let periodEnd = sub.current_period_end ?? sub.items?.data?.[0]?.current_period_end;
+  // Cancelled immediately (e.g. refunded): access ends when Stripe ended it, not at the old period end.
+  if (sub.status === "canceled" && sub.ended_at) periodEnd = Math.min(periodEnd, sub.ended_at);
+  // Payment failed: Stripe has already moved to the new (unpaid) period. The grace days must count
+  // from when that unpaid period began — not from its end, which could be a year away.
+  if (sub.status === "past_due" || sub.status === "unpaid") {
+    periodEnd = sub.current_period_start ?? sub.items?.data?.[0]?.current_period_start ?? periodEnd;
+  }
   const next = {
     household_id: household,
     provider: "stripe",
@@ -117,6 +124,7 @@ export async function syncSubscription(subscriptionId: string): Promise<string> 
     provider_subscription_id: sub.id,
     status: sub.status,
     current_period_end: new Date(periodEnd * 1000).toISOString(),
+    cancel_at_period_end: sub.cancel_at_period_end === true,
     grace_days: 3,
     updated_at: new Date().toISOString(),
   };
@@ -125,6 +133,11 @@ export async function syncSubscription(subscriptionId: string): Promise<string> 
   const curGrants = cur && GRANTS.has(cur.status) && new Date(cur.current_period_end).getTime() > Date.now();
   const sameSub = cur?.provider === "stripe" && cur.provider_subscription_id === sub.id;
   if (cur && curGrants && !sameSub && !GRANTS.has(sub.status)) return "kept-existing";
+  // An older Stripe subscription never replaces a newer one (e.g. when re-reading old invoices).
+  if (cur?.provider === "stripe" && cur.provider_subscription_id && !sameSub) {
+    const curSub = await stripe(`/subscriptions/${cur.provider_subscription_id}`).catch(() => null);
+    if (curSub && curSub.created > sub.created) return "kept-newer";
+  }
   await upsert("entitlements", "household_id", next);
   return `entitlement:${sub.status}`;
 }
@@ -134,7 +147,9 @@ export async function syncInvoice(invoiceId: string): Promise<string> {
   const subObj = typeof inv.subscription === "object" ? inv.subscription : null;
   const household = await householdForCustomer(inv.customer, subObj?.metadata?.household_id ?? inv.metadata?.household_id);
   if (!household) return "unknown-household";
-  const line = inv.lines?.data?.find((l: any) => l.price) ?? inv.lines?.data?.[0];
+  // The plan line (not a proration credit for the old plan).
+  const lines = inv.lines?.data ?? [];
+  const line = lines.find((l: any) => l.price && !l.proration && l.amount >= 0) ?? lines.find((l: any) => l.amount > 0) ?? lines[0];
   const paid = inv.amount_paid ?? 0;
   await upsert("billing_invoices", "id", {
     id: inv.id,
@@ -157,7 +172,9 @@ export async function syncInvoice(invoiceId: string): Promise<string> {
     updated_at: new Date().toISOString(),
   });
   if (inv.status === "paid" && paid > 0) await attributeReferral(household, subObj?.metadata?.referral_code, inv.id);
-  return `invoice:${inv.status}`;
+  // Keep the membership in step with this invoice (newer Stripe event payloads no longer carry the subscription id).
+  const subId = subObj?.id ?? (typeof inv.subscription === "string" ? inv.subscription : undefined);
+  return `invoice:${inv.status}` + (subId ? ` ${await syncSubscription(subId)}` : "");
 }
 
 /** First paid invoice decides the referring creator (once; later codes never change it). */

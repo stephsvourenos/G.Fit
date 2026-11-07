@@ -27,6 +27,8 @@ export interface HouseholdEntitlement {
   currentPeriodEnd: string;
   /** Short grace period for failed renewals so a declined card doesn't instantly lock a family out. */
   graceDays: number;
+  /** The family cancelled; access continues to currentPeriodEnd, then stops. */
+  cancelAtPeriodEnd?: boolean;
 }
 
 export function hasStreamingAccess(e: HouseholdEntitlement | undefined, now: Date): boolean {

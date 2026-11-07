@@ -1,6 +1,6 @@
 # BUILD_STATUS
 
-_Last updated: 7 Nov 2026 — Phase 2 (video) complete on the web; TV casting confirmed_
+_Last updated: 7 Nov 2026 — Phase 3 (Stripe, TEST MODE) built and tested; your checkout try-out pending_
 
 ## Done (Phase 0)
 - Monorepo (pnpm workspaces): `apps/web` (Next.js 16), `apps/mobile` (Expo SDK 58), `packages/domain`,
@@ -129,3 +129,32 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
 ## Next
 1. ✅ Code is on GitHub: `stephsvourenos/G.Fit` (27 Oct 2026).
 2. Phase 1: Supabase project (I'll walk you through it), migrations, RLS policies + tests, real sign-in.
+
+## Phase 3 — Website subscriptions (Stripe TEST MODE) — 7 Nov 2026
+- Stripe account **G.Fit sandbox** (test mode). Product "Family membership": **A$14.99/month** and **A$149.99/year**,
+  GST-inclusive, found by lookup keys `gfit_family_monthly_aud_v1` / `gfit_family_annual_aud_v1` (a price change =
+  new Price + new key, so existing members keep their price). Customer Portal configured: update card, invoices,
+  switch monthly↔annual (prorated), cancel at period end with a reason
+- Secrets only in Supabase: `STRIPE_SECRET_KEY` (sk_test), `STRIPE_WEBHOOK_SECRET`. Server refuses a live key or live
+  events unless `APP_ENV=production`
+- Edge Functions: `billing-checkout` (hosted Stripe Checkout, allow-listed return addresses, referral code),
+  `billing-portal`, `stripe-webhook` (signature check, each event once, always re-reads Stripe's current state so
+  late/out-of-order events can't corrupt anything), `billing-reconcile` (nightly at 02:41 + "Check with Stripe now"
+  on the admin page; repairs anything a missed webhook left behind)
+- Database: `billing_customers`, `billing_invoices` (amount, GST = 1/11, plan, period — the input to royalties),
+  `billing_refunds`, `referral_attributions` (first paid invoice decides the creator, once), `entitlements.cancel_at_period_end`.
+  Families read only their own; only the server writes
+- Website: account page **Join** (monthly/annual, optional creator code, prefilled from `?ref=CODE` links for 30 days),
+  **Manage membership** (Stripe portal), clear past-due and "cancelled — access until…" messages. Admin
+  **Subscribers & entitlements** shows real data
+- Tested live against Stripe test mode (real webhooks): join with referral → active + invoice A$14.99 (GST A$1.36) +
+  referral to PIP; upgrade to annual → A$135.00 prorated; cancel at period end → access kept, flag shown; resume;
+  refund A$135.00 recorded; cancel immediately → access ends now; declined card → refused; card failing on charge →
+  incomplete, no access; failed payment → past due with 3 days' grace; forged webhook → 401; nightly check repaired
+  earlier records; families can't read others' billing, insert invoices, grant themselves access or run test tools
+- Bugs found and fixed in testing: (1) past-due grace was counted from the end of the *new* period (up to a year of free
+  access) — now 3 days from the failed payment; (2) immediate cancellation kept access to period end; (3) upgrade
+  invoices were labelled with the old plan; (4) test-grant tool silently did nothing after a cancelled subscription
+- Test-only tool (admin, test key, non-production only): `billing-reconcile` `{test:{…}}` drives Stripe test cards
+- Not yet: Stripe Tax (paid add-on — decide with your accountant before launch); trial/promo codes (Checkout accepts
+  promotion codes once you create them); phone app stays sign-in only

@@ -4,6 +4,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { asServer, cors, json, staffRoles } from "../_shared/http.ts";
 import { stripe, syncInvoice, syncSubscription } from "../_shared/stripe.ts";
+import { runTestScenario } from "../_shared/stripe-test.ts";
 
 async function authorised(req: Request) {
   const nonce = req.headers.get("x-cron-nonce");
@@ -16,6 +17,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
     if (!(await authorised(req))) return json({ error: "not allowed" }, 403);
+    const body = await req.json().catch(() => ({}));
+    if (body.health) {
+      // Which Stripe account the stored key belongs to, and whether it's test mode. No secrets returned.
+      const acct = await stripe("/account");
+      const bal = await stripe("/balance");
+      return json({ ok: true, account: acct.id, name: acct.settings?.dashboard?.display_name ?? null, livemode: bal.livemode === true, webhookSecretSet: Boolean(Deno.env.get("STRIPE_WEBHOOK_SECRET")) });
+    }
+    // Test-only scenarios (refuse to run with a live key or in production) — admin/finance only, never via cron.
+    if (body.test && !req.headers.get("x-cron-nonce")) return json({ ok: true, result: await runTestScenario(body.test) });
     const customers = (await asServer("billing_customers?select=stripe_customer_id")).data ?? [];
     let subs = 0, invoices = 0;
     const changes: string[] = [];

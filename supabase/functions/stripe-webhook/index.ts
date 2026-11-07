@@ -24,10 +24,8 @@ Deno.serve(async (req) => {
   try {
     if (type === "checkout.session.completed" && obj.subscription) outcome = await syncSubscription(obj.subscription);
     else if (type.startsWith("customer.subscription.")) outcome = await syncSubscription(obj.id);
-    else if (type.startsWith("invoice.")) {
-      outcome = await syncInvoice(obj.id);
-      if (obj.subscription) outcome += " " + (await syncSubscription(obj.subscription));
-    } else if (type === "charge.refunded") outcome = await syncCharge(obj.id);
+    else if (type.startsWith("invoice.")) outcome = await syncInvoice(obj.id);
+    else if (type === "charge.refunded") outcome = await syncCharge(obj.id);
     else if (type.startsWith("refund.") && obj.charge) outcome = await syncCharge(obj.charge);
   } catch (e) {
     console.error(type, e);

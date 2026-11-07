@@ -134,6 +134,7 @@ export function LiveHouseholdProvider({ children }: { children: React.ReactNode 
             status: e.status,
             currentPeriodEnd: e.current_period_end,
             graceDays: e.grace_days,
+            cancelAtPeriodEnd: e.cancel_at_period_end === true,
           }
         : undefined,
     );
