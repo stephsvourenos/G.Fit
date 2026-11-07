@@ -1,4 +1,5 @@
-import { supabase } from "./supabase";
+import { supabase, supabaseConfigured } from "./supabase";
+import { deviceId } from "./video";
 
 export type Plan = "monthly" | "annual";
 
@@ -17,6 +18,12 @@ export function captureReferralFromUrl() {
     const code = new URLSearchParams(window.location.search).get("ref");
     if (code && /^[A-Za-z0-9_-]{3,32}$/.test(code)) {
       localStorage.setItem(REF_KEY, JSON.stringify({ code, at: Date.now() }));
+      // Count the visit for the creator's referral funnel (anonymous browser id; once per day).
+      if (supabaseConfigured) {
+        void supabase()
+          .rpc("record_referral_click", { code, visitor: deviceId() })
+          .then(({ error }) => error && console.error("[referral] click", error.message));
+      }
     }
   } catch {
     /* storage blocked: referral simply isn't remembered */

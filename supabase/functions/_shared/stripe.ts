@@ -1,6 +1,7 @@
 // Stripe helpers shared by the billing Edge Functions. The secret key lives only
 // in Supabase Edge Function secrets. Refuses a LIVE key unless APP_ENV=production.
 import { asServer } from "./http.ts";
+import { acceptsNewReferrals } from "./domain.js";
 
 const KEY = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
 const APP_ENV = Deno.env.get("APP_ENV") ?? "development";
@@ -189,6 +190,7 @@ async function enforceOneTrial(sub: any, household: string): Promise<string> {
     body: JSON.stringify({
       household_id: household, card_fingerprint: fingerprint, subscription_id: sub.id,
       trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null, outcome,
+      referral_code: sub.metadata?.referral_code ?? null,
     }),
   });
   if (outcome !== "granted") {
@@ -232,6 +234,12 @@ export async function syncInvoice(invoiceId: string): Promise<string> {
   const lines = inv.lines?.data ?? [];
   const line = lines.find((l: any) => l.price && !l.proration && l.amount >= 0) ?? lines.find((l: any) => l.amount > 0) ?? lines[0];
   const paid = inv.amount_paid ?? 0;
+  // Stripe's processing fee for this payment (creators are paid on net receipts: excl. GST and fees).
+  let fee: number | null = null;
+  if (inv.charge && paid > 0) {
+    const ch = await stripe(`/charges/${typeof inv.charge === "string" ? inv.charge : inv.charge.id}`, { params: { expand: ["balance_transaction"] } });
+    fee = typeof ch.balance_transaction === "object" ? (ch.balance_transaction?.fee ?? null) : null;
+  }
   await upsert("billing_invoices", "id", {
     id: inv.id,
     household_id: household,
@@ -241,6 +249,7 @@ export async function syncInvoice(invoiceId: string): Promise<string> {
     amount_due_minor: inv.amount_due ?? 0,
     amount_paid_minor: paid,
     gst_minor: Math.round(paid / 11), // prices are GST-inclusive
+    processor_fee_minor: fee,
     price_id: line?.price?.id ?? null,
     price_lookup_key: line?.price?.lookup_key ?? null,
     billing_interval: line?.price?.recurring?.interval ?? null,
@@ -258,7 +267,12 @@ export async function syncInvoice(invoiceId: string): Promise<string> {
   return `invoice:${inv.status}` + (subId ? ` ${await syncSubscription(subId)}` : "");
 }
 
-/** First paid invoice decides the referring creator (once; later codes never change it). */
+/**
+ * First paid invoice decides the referring creator (once; later codes never change it).
+ * The creator's referral terms at that moment are FROZEN on the attribution, so later
+ * contract changes only affect future referrals. Refused when: unknown/inactive code,
+ * the creator isn't accepting new referrals, or it's the creator's own household.
+ */
 async function attributeReferral(household: string, code: string | undefined, invoiceId: string) {
   if (!code) return;
   const existing = await asServer(`referral_attributions?household_id=eq.${household}&select=household_id`);
@@ -266,10 +280,23 @@ async function attributeReferral(household: string, code: string | undefined, in
   const c = await asServer(`creators?referral_code=eq.${encodeURIComponent(code)}&status=eq.active&select=id`);
   const creator = c.data?.[0]?.id;
   if (!creator) return;
+  const k = await asServer(`creator_contracts?creator_id=eq.${creator}&select=*&order=version.desc&limit=1`);
+  const contract = k.data?.[0];
+  if (!contract) return;
+  const month = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney", year: "numeric", month: "2-digit" })
+    .format(new Date()).slice(0, 7);
+  if (!acceptsNewReferrals({ ...contract.terms, contractId: contract.contract_id, version: contract.version, creatorId: creator }, month)) return;
+  // Self-referral: the household owner is one of the creator's own logins.
+  const owner = (await asServer(`households?id=eq.${household}&select=owner_user_id`)).data?.[0]?.owner_user_id;
+  const self = owner ? await asServer(`creator_users?creator_id=eq.${creator}&user_id=eq.${owner}&select=user_id`) : { data: [] };
+  if (self.data?.length) return;
   await asServer("referral_attributions", {
     method: "POST",
     headers: { Prefer: "return=minimal,resolution=ignore-duplicates" },
-    body: JSON.stringify({ household_id: household, creator_id: creator, referral_code: code, first_invoice_id: invoiceId }),
+    body: JSON.stringify({
+      household_id: household, creator_id: creator, referral_code: code, first_invoice_id: invoiceId,
+      contract_id: contract.contract_id, contract_version: contract.version, terms: contract.terms.referral, source: "link",
+    }),
   });
 }
 

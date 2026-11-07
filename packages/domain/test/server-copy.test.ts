@@ -11,3 +11,11 @@ describe("server copy of the playback rules", () => {
     expect(read("../../../supabase/functions/_shared/playback.ts")).toBe(read("../src/playback.ts"));
   });
 });
+
+describe("server bundle of the business rules", () => {
+  it("supabase/functions/_shared/domain.js matches packages/domain/src", async () => {
+    const { execFileSync } = await import("node:child_process");
+    const script = fileURLToPath(new URL("../scripts/bundle-deno.mjs", import.meta.url));
+    expect(() => execFileSync(process.execPath, [script, "--check"], { stdio: "pipe" })).not.toThrow();
+  });
+});
