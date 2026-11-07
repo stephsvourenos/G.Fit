@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { hasStreamingAccess, type HouseholdEntitlement } from "@app/domain";
 import {
+  checkOffer,
+  money,
   openPortal,
+  type AppliedOffer,
   planFromLookupKey,
   PLANS,
   savedReferral,
@@ -38,6 +41,10 @@ export function MembershipCard({
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string>();
+  const [offerCode, setOfferCode] = useState("");
+  const [offer, setOffer] = useState<AppliedOffer>();
+  const [offerMsg, setOfferMsg] = useState<string>();
+  const [pricing, setPricing] = useState<{ plan_key: string | null; price_minor: number | null; discounted_price_minor: number | null; discount_label: string | null; discount_ends_at: string | null }>();
   const [checkout] = useState(() =>
     typeof window === "undefined"
       ? null
@@ -77,6 +84,34 @@ export function MembershipCard({
         setMyPlan(planFromLookupKey(data?.[0]?.price_lookup_key)),
       );
   }, [trialing]);
+
+  // What this family pays now (incl. founder price or promo), for paying members.
+  useEffect(() => {
+    if (!paid) return;
+    const db = supabase();
+    db.from("households").select("id").maybeSingle().then(({ data: hh }) =>
+      db.from("entitlements")
+        .select("plan_key, price_minor, discounted_price_minor, discount_label, discount_ends_at")
+        .eq("household_id", hh?.id ?? "")
+        .maybeSingle()
+        .then(({ data }) => data && setPricing(data)),
+    );
+  }, [paid]);
+
+  // Offer codes are checked per plan (e.g. founder and launch promos are monthly only).
+  const applyOffer = async (p: Plan = plan) => {
+    if (!offerCode.trim()) return;
+    setOfferMsg(undefined);
+    const r = await checkOffer(p, offerCode.trim());
+    setOffer(r.offer);
+    if (r.error) setOfferMsg(r.error);
+  };
+  const choosePlan = (p: Plan) => {
+    setPlan(p);
+    if (offer || offerMsg) void applyOffer(p);
+  };
+  const shownPrice = (p: Plan) => (offer && p === plan ? money(offer.price_minor) : PLANS[p].price);
+  const priceText = offer ? offer.label : `${PLANS[plan].price} ${PLANS[plan].note.split(" — ")[0]}`;
 
   // After paying, Stripe tells our server within a few seconds; wait for it, then refresh.
   useEffect(() => {
@@ -153,9 +188,19 @@ export function MembershipCard({
                     : active && entitlement.cancelAtPeriodEnd
                       ? `Cancelled — videos keep working until ${fmt(entitlement.currentPeriodEnd)}. Changed your mind? Use “Manage membership”.`
                       : active
-                        ? `${paid ? "Current period ends" : "Active until"} ${fmt(entitlement.currentPeriodEnd)}`
+                        ? `${paid ? "Renews" : "Active until"} ${fmt(entitlement.currentPeriodEnd)}`
                         : `Ended ${fmt(entitlement.currentPeriodEnd)} — videos paused`}
               </div>
+              {paid && pricing?.price_minor != null && (
+                <div className="mt-1 text-sm text-paper/80">
+                  {pricing.plan_key?.includes("founder") && "Founding-family price: "}
+                  {pricing.discounted_price_minor != null
+                    ? `${money(pricing.discounted_price_minor)}${pricing.discount_ends_at ? ` until ${fmt(pricing.discount_ends_at)}` : ""}, then ${money(pricing.price_minor)}`
+                    : money(pricing.price_minor)}
+                  {pricing.plan_key?.includes("annual") ? " per year" : " per month"} (GST included)
+                  {pricing.plan_key?.includes("founder") && " — yours for as long as you stay a member"}
+                </div>
+              )}
             </>
           ) : (
             <div className="font-display mt-1 text-2xl">
@@ -203,11 +248,14 @@ export function MembershipCard({
                   key={p}
                   role="radio"
                   aria-checked={plan === p}
-                  onClick={() => setPlan(p)}
+                  onClick={() => choosePlan(p)}
                   className={`rounded-2xl p-4 text-left ring-2 transition ${plan === p ? "bg-ink-3 ring-sun" : "ring-white/10 hover:ring-white/30"}`}
                 >
                   <div className="text-sm font-semibold">{PLANS[p].label}</div>
-                  <div className="font-display text-2xl">{PLANS[p].price}</div>
+                  <div className="font-display text-2xl">
+                    {shownPrice(p)}
+                    {offer && p === plan && <span className="ml-2 text-sm text-muted line-through">{PLANS[p].price}</span>}
+                  </div>
                   <div className="text-xs text-muted">
                     {PLANS[p].note} · GST included
                   </div>
@@ -225,8 +273,27 @@ export function MembershipCard({
                 aria-label="Creator referral code"
               />
             </label>
+            <div className="mt-4 text-sm">
+              <label htmlFor="offer-code">
+                Offer code <span className="text-muted">(optional)</span>
+              </label>
+              <div className="mt-1 flex flex-wrap gap-2">
+                <input
+                  id="offer-code"
+                  value={offerCode}
+                  onChange={(e) => { setOfferCode(e.target.value.toUpperCase().trim()); setOffer(undefined); setOfferMsg(undefined); }}
+                  maxLength={32}
+                  className="w-56 rounded-xl bg-ink-3 px-3 py-2 uppercase"
+                />
+                <button onClick={() => applyOffer()} disabled={!offerCode} className="rounded-full px-4 py-2 font-semibold ring-1 ring-white/20 disabled:opacity-40">
+                  Apply
+                </button>
+              </div>
+              {offer && <p className="mt-1 text-mint">✓ {offer.label}</p>}
+              {offerMsg && <p className="mt-1 text-coral-2">{offerMsg}</p>}
+            </div>
             <button
-              onClick={() => go(() => startCheckout(plan, code || undefined))}
+              onClick={() => go(() => startCheckout(plan, code || undefined, offer ? offerCode : undefined))}
               disabled={busy}
               className="mt-4 rounded-full bg-coral px-6 py-3 font-semibold text-white hover:bg-coral-2 disabled:opacity-50"
             >
@@ -234,12 +301,12 @@ export function MembershipCard({
                 ? "Opening secure checkout…"
                 : trialDays
                   ? `Start ${trialDays}-day free trial`
-                  : `Join — ${PLANS[plan].price}`}
+                  : `Join — ${shownPrice(plan)}`}
             </button>
             <p className="mt-3 max-w-xl text-sm text-paper/80">
               {trialDays
-                ? `Free for ${trialDays} days, then ${PLANS[plan].price} ${PLANS[plan].note.split(" — ")[0]} (GST included), renewing until you cancel. A card is needed to start. We’ll remind you before your trial ends, and you can cancel online anytime — cancel during the trial and you pay nothing. One free trial per family.`
-                : `${PLANS[plan].price} ${PLANS[plan].note.split(" — ")[0]} (GST included), charged today and renewing until you cancel. Cancel online anytime; access continues to the end of the paid period.`}
+                ? `Free for ${trialDays} days, then ${priceText} (GST included), renewing until you cancel. A card is needed to start. We’ll remind you before your trial ends, and you can cancel online anytime — cancel during the trial and you pay nothing. One free trial per family.`
+                : `${priceText} (GST included), charged today and renewing until you cancel. Cancel online anytime; access continues to the end of the paid period.`}
             </p>
             <p className="mt-2 text-xs text-muted">
               Test mode: no real money moves. Use card 4242 4242 4242 4242, any

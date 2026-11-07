@@ -1,0 +1,87 @@
+# Publishes the mobile app as a preview you open on your phone in the free "Expo Go" app.
+# Runs whenever mobile code changes on main (or by hand from the Actions tab).
+# Needs one repository secret: EXPO_TOKEN (expo.dev → Account settings → Access tokens).
+# The link and QR code are in the run's summary page. Nothing goes to the App Store or Google Play.
+name: Mobile preview (Expo Go)
+
+on:
+  push:
+    branches: [main]
+    paths: ["apps/mobile/**", "packages/**", ".github/workflows/mobile-preview.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-preview
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      # Public values only (safe inside the app).
+      EXPO_PUBLIC_SUPABASE_URL: https://iwwnexttdqksrwqafazi.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_wk7bojwHFpsZlOBqOcCFPA_os_1w4z6
+      # Expo Go for SDK 58 runs updates published for this runtime.
+      RUNTIME: exposdk:58.0.0
+      CHANNEL: preview
+    steps:
+      - name: Check the Expo token is set
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::warning::EXPO_TOKEN secret is not set yet — skipping the phone preview."
+            echo "### Phone preview skipped: add the EXPO_TOKEN secret (see ACCOUNT_SETUP.md)" >> "$GITHUB_STEP_SUMMARY"
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
+      - uses: actions/checkout@v4
+        if: env.SKIP != '1'
+      - uses: pnpm/action-setup@v4
+        if: env.SKIP != '1'
+      - uses: actions/setup-node@v4
+        if: env.SKIP != '1'
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: env.SKIP != '1'
+      - name: Link the project to your Expo account (first run creates it)
+        if: env.SKIP != '1'
+        working-directory: apps/mobile
+        run: |
+          npx --yes eas-cli@latest init --non-interactive --force
+          node -e '
+            const fs = require("fs");
+            const j = JSON.parse(fs.readFileSync("app.json", "utf8"));
+            const id = j.expo.extra?.eas?.projectId;
+            if (!id) { console.error("No projectId after eas init"); process.exit(1); }
+            j.expo.runtimeVersion = process.env.RUNTIME;
+            j.expo.updates = { ...(j.expo.updates ?? {}), url: `https://u.expo.dev/${id}` };
+            fs.writeFileSync("app.json", JSON.stringify(j, null, 2));
+            fs.appendFileSync(process.env.GITHUB_ENV, `PROJECT_ID=${id}\n`);
+          '
+      - name: Publish the preview
+        if: env.SKIP != '1'
+        working-directory: apps/mobile
+        run: |
+          npx --yes eas-cli@latest update --channel "$CHANNEL" --platform all \
+            --message "Preview ${GITHUB_SHA::7}" --non-interactive --json > update.json
+          cat update.json
+      - name: Write the link and QR code to the summary
+        if: env.SKIP != '1'
+        run: |
+          RV=$(node -e 'console.log(encodeURIComponent(process.env.RUNTIME))')
+          QR="https://qr.expo.dev/eas-update?projectId=${PROJECT_ID}&runtimeVersion=${RV}&channel=${CHANNEL}"
+          LINK=$(curl -fsS "${QR}&format=url" || true)
+          {
+            echo "## Open on your phone"
+            echo "1. Install **Expo Go** from the App Store / Google Play and sign in with your Expo account."
+            echo "2. Scan this QR code with the iPhone camera:"
+            echo ""
+            echo "![QR code](${QR})"
+            echo ""
+            echo "Or open this link on the phone: \`${LINK}\`"
+            echo ""
+            echo "Project: \`${PROJECT_ID}\` · runtime \`${RUNTIME}\` · channel \`${CHANNEL}\` · commit \`${GITHUB_SHA::7}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "QR: $QR"
+          echo "LINK: $LINK"

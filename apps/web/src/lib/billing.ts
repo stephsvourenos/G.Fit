@@ -53,7 +53,16 @@ async function call(fn: string, body: Record<string, unknown>): Promise<{ url?: 
   return { error: "Couldn’t reach the payment service. Please try again." };
 }
 
-export const startCheckout = (plan: Plan, referralCode?: string) => call("billing-checkout", { plan, referral_code: referralCode });
+export const startCheckout = (plan: Plan, referralCode?: string, offerCode?: string) =>
+  call("billing-checkout", { plan, referral_code: referralCode, offer_code: offerCode });
+
+export interface AppliedOffer { kind: "founder" | "promo"; label: string; price_minor: number }
+
+/** Check an offer code (FOUNDER or a promo code) for a plan before going to checkout. */
+export async function checkOffer(plan: Plan, code: string): Promise<{ offer?: AppliedOffer; error?: string }> {
+  const r = (await call("billing-checkout", { check_offer: true, plan, offer_code: code })) as { offer?: AppliedOffer; error?: string };
+  return r.offer ? { offer: r.offer } : { error: r.error ?? "That code can’t be used." };
+}
 export const openPortal = () => call("billing-portal", {});
 
 /** How many free-trial days this family can still have (0 = already had one). */
@@ -63,5 +72,7 @@ export async function trialDaysAvailable(): Promise<number> {
 }
 
 /** Map a Stripe price lookup key back to our plan. */
+export const money = (minor: number) => `A$${(minor / 100).toFixed(2)}`;
+
 export const planFromLookupKey = (k?: string | null): Plan | undefined =>
   k?.includes("annual") ? "annual" : k?.includes("monthly") ? "monthly" : undefined;
