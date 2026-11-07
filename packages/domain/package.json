@@ -5,12 +5,17 @@
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "bundle:deno": "node scripts/bundle-deno.mjs",
+    "bundle:check": "node scripts/bundle-deno.mjs --check"
   },
   "devDependencies": {
+    "esbuild": "0.25.10",
     "typescript": "^5",
     "vitest": "^5"
   }
