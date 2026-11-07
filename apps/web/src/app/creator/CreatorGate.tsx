@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BankDetails } from "./BankDetails";
 import { brand } from "@app/config";
 import { CATEGORY_LABEL, formatDuration, formatMoney, type CategoryId } from "@app/domain";
 import { useStaffSession } from "@/lib/staff";
@@ -182,6 +183,8 @@ function CreatorLive({ creatorId, email }: { creatorId: string; email?: string }
                 </div>
               )}
             </section>
+
+            <BankDetails creatorId={creatorId} guardian={!!creator.guardian_managed} />
 
             {minutesByMonth.length > 0 && (
               <section className="mt-6 rounded-2xl bg-white p-5 ring-1 ring-ink/5">

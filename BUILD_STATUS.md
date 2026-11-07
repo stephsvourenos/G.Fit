@@ -1,6 +1,6 @@
 # BUILD_STATUS
 
-_Last updated: 7 Nov 2026 — Phase 4 (creator economics on real data) built and tested_
+_Last updated: 7 Nov 2026 — Phase 5 (bank payment files, reconciliation, finance reports) built and tested_
 
 ## Done (Phase 0)
 - Monorepo (pnpm workspaces): `apps/web` (Next.js 16), `apps/mobile` (Expo SDK 58), `packages/domain`,
@@ -27,7 +27,7 @@ _Last updated: 7 Nov 2026 — Phase 4 (creator economics on real data) built and
 | 4 | Household-balanced pool + refunds; skip-to-end earns nothing | ✅ unit-tested + browser-checked |
 | 5 | 3 contracts, pause, cancelled, annual, refund — cent-exact & reproducible | ✅ unit-tested (fingerprint) |
 | 6 | Duplicate & out-of-order webhooks | ✅ unit-tested; live Stripe in Ph 3 |
-| 7 | Minimum payout carry-forward, evidence, no double payout | ✅ unit-tested |
+| 7 | Minimum payout carry-forward, evidence, no double payout | ✅ unit + database tests; bank file + reconciliation (Ph 5) |
 | 8 | Role permissions & creator data isolation | Needs Supabase RLS (Ph 1) |
 | 9 | Signed video denied on expiry / age mismatch | ✅ decision logic tested; Mux signing in Ph 2 |
 | 10 | Full UX in mock mode, then sandbox | ✅ mock mode; sandbox after Ph 1–3 |
@@ -210,3 +210,31 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
 - **Still open:** acceptance test 2 (founder A$9.99 grandfathered, A$4.99 × 3 promo) needs those prices/coupons created
   in Stripe — the price-versioning mechanism exists; to do with your pricing decision. GST/withholding treatment of
   creator payments awaits your accountant
+
+## Phase 5 — Paying creators and finance reports (7 Nov 2026)
+- **Bank payment file (ABA / direct entry):** `packages/domain/src/aba.ts` builds the standard Australian bulk-payment
+  file (120-character records, header/detail/total, optional balancing debit) and reads it back to double-check. New
+  `payout-file` function: *check*, *sample* (test file), *generate* (approved batches only; refuses missing bank
+  details, details changed in the last 7 days unless confirmed, past dates; stores the file + SHA-256 and marks the batch
+  exported in one step), *download* (verifies the fingerprint), *reconcile*
+- **Reconciliation:** upload the business account's CSV; matches by reference + amount, per creator or as one bulk
+  debit. "Confirm paid" records whether it was reconciled. Manual "Mark exported" is gone — a batch can only be
+  exported by making its file
+- **Creator bank details:** creators (or guardians) enter them in the portal; shown masked; admins can also set them;
+  every add/change is in the audit log with the account number masked; parents can't see them
+- **Business bank details** (Configuration): bank, Direct Entry User ID, paying account; admin-only to change;
+  *Download test file* for your bank's file checker. Also the video delivery cost used for margin
+- **Finance reports** (Admin → Finance reports): paying / trialling / cancelling / failed-payment families, MRR, ARPU,
+  trial conversion, blocked repeat trials, monthly cash (gross, GST, fees, refunds, net), earned net receipts, creator
+  costs, video cost, contribution margin, new / churned families, cohort retention
+- **Tests:** domain 63/63 (ABA layout, totals, validation, CSV parsing, reconciliation incl. bulk debit); database
+  finance checks **38/38** (adds: no export without a file, creator can only set own bank details, invalid BSB refused,
+  parent sees no bank details or settings, non-admin can't change settings, audit masks the number); RLS 32/32; journey
+  19/19. End-to-end on the dev database with a throw-away test creator + batch: file built (lines 120 chars, totals
+  match), second file refused, download identical, wrong statement not matched, bulk debit matched, confirm stores
+  "reconciled". Test batch then cancelled and test bank settings cleared. Browser checks pass (reports, settings,
+  payouts, creator bank form)
+- **Left for you (Phase 5 sign-off):** ask your bank for direct entry, enter the details in Configuration, run the test
+  file through the bank's checker (docs/MONTHLY_CLOSE.md → One-off setup)
+- Note: a creator called "TEST · bank file check" (status ended) and its cancelled A$123.45 batch remain in the dev
+  database — payout records are permanent by design

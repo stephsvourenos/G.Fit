@@ -8,7 +8,7 @@ import { ROLE_LABEL, useStaffSession } from "@/lib/staff";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 
 /** Pages that already run on the real database; the rest still show sample figures. */
-const LIVE_PAGES = ["/admin/content/", "/admin/audit/", "/admin/playback/", "/admin/subscribers/", "/admin/royalties/", "/admin/payouts/", "/admin/creators/", "/admin/referrals/"];
+const LIVE_PAGES = ["/admin/content/", "/admin/audit/", "/admin/playback/", "/admin/subscribers/", "/admin/royalties/", "/admin/payouts/", "/admin/creators/", "/admin/referrals/", "/admin/reports/", "/admin/settings/"];
 
 export const ADMIN_NAV: Array<[string, string, string?]> = [
   ["/admin/", "Overview"],
@@ -22,6 +22,7 @@ export const ADMIN_NAV: Array<[string, string, string?]> = [
   ["/admin/royalties/", "Monthly royalty run"],
   ["/admin/ledger/", "Creator liability ledger"],
   ["/admin/payouts/", "Payout batches"],
+  ["/admin/reports/", "Finance reports"],
   ["/admin/audit/", "Audit log"],
   ["/admin/settings/", "Configuration"],
 ];
@@ -88,7 +89,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         {sample && (
           <p className="mb-5 rounded-xl bg-sun/25 px-4 py-2.5 text-sm text-ink">
             <b>Sample figures.</b> This page still shows simulated demo data; it switches to live data in a later phase.
-            Content approval and the audit log already use the real database.
+            Most admin pages already use the real database.
           </p>
         )}
         {children}

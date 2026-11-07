@@ -28,3 +28,9 @@ heartbeat data kept 90 days; captions required at launch; no offline downloads i
 - **Founder / promo pricing (acceptance test 2).** Confirm whether you want a founder price (e.g. A$9.99 locked) and a
   launch promo (e.g. A$4.99 for 3 months) — I'll create them in Stripe test mode and test the transitions.
 - **Real contract terms** for your first creators (rate, paid-month limit, licence length, minimum payout).
+
+## New for Phase 5 (7 Nov 2026)
+- **Which bank is the business account with?** Bulk payment files differ slightly by bank (e.g. whether a balancing
+  line is needed). Once direct entry is switched on, enter the details in Admin → Configuration yourself — not in chat.
+- **Video delivery cost** for the margin report (A$ per 1,000 minutes) — I'll fill in an estimate from Mux pricing
+  when we're on a paid Mux plan; until then margin shows creator costs only.

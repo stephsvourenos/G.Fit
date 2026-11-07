@@ -1,6 +1,7 @@
 import { DEFAULT_NET_RECEIPTS_POLICY, DEFAULT_PAYOUT_TERMS, DEFAULT_PLAYBACK_POLICY, DEFAULT_REFERRAL_TERMS, DEFAULT_ROYALTY_POLICY } from "@app/domain";
 import { brand } from "@app/config";
 import { PageHeader } from "@/components/AdminShell";
+import { FinanceSettings } from "./FinanceSettings";
 
 export default function SettingsPage() {
   const blocks: Array<[string, unknown]> = [
@@ -14,6 +15,7 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader title="Configuration" sub="Business rules are versioned data, not code. A change creates a new version that applies from a chosen date; past months keep the version they were calculated with." />
+      <FinanceSettings />
       <div className="grid gap-4 lg:grid-cols-2">
         {blocks.map(([t, v]) => (
           <section key={t} className="rounded-xl bg-white p-4 ring-1 ring-ink/5">
