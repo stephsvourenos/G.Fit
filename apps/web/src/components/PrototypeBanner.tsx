@@ -4,7 +4,7 @@ export function PrototypeBanner() {
   return (
     <div className="bg-sun text-ink text-xs font-semibold text-center px-3 py-1.5" role="note">
       {live
-        ? "Development version · test accounts and test videos · no payments yet"
+        ? "Development version · test accounts, test videos and Stripe test payments only — no real money"
         : "Prototype · sample data only · no real accounts, payments or videos are connected"}
     </div>
   );

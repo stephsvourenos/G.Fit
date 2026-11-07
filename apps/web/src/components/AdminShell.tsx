@@ -53,7 +53,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const sample = supabaseConfigured && !LIVE_PAGES.includes(path);
+  // Compare with a trailing slash either way (Next may report "/admin/x" or "/admin/x/").
+  const sample = supabaseConfigured && !LIVE_PAGES.includes(`${path.replace(/\/$/, "")}/`);
   return (
     <div className="flex flex-1 flex-col bg-[#f4f5f7] text-ink lg:flex-row">
       <aside className="border-b border-ink/10 bg-white lg:min-h-full lg:w-64 lg:border-b-0 lg:border-r">
@@ -86,7 +87,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <main className="min-w-0 flex-1 p-4 sm:p-8">
         {sample && (
           <p className="mb-5 rounded-xl bg-sun/25 px-4 py-2.5 text-sm text-ink">
-            <b>Sample figures.</b> This page shows the simulated demo data until payments and creator payouts go live (Phases 3–5).
+            <b>Sample figures.</b> This page still shows simulated demo data; it switches to live data in a later phase.
             Content approval and the audit log already use the real database.
           </p>
         )}

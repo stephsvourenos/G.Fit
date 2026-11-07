@@ -1,6 +1,6 @@
 # BUILD_STATUS
 
-_Last updated: 7 Nov 2026 — Phase 3 (Stripe, TEST MODE) built and tested; your checkout try-out pending_
+_Last updated: 7 Nov 2026 — Phase 4 (creator economics on real data) built and tested_
 
 ## Done (Phase 0)
 - Monorepo (pnpm workspaces): `apps/web` (Next.js 16), `apps/mobile` (Expo SDK 58), `packages/domain`,
@@ -174,3 +174,39 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
   trial end → first annual charge A$149.99 → active
 - Fixed during this work: "Manage membership" opened another family's billing for admin accounts; Stripe's default
   "change quantity" switched off in the portal
+
+## Phase 4 — Creator economics on real data (7 Nov 2026)
+- **Automatic deploys:** GitHub Actions deploys every Supabase function from the repository on push
+  (`.github/workflows/deploy-functions.yml`, secret `SUPABASE_ACCESS_TOKEN`, project-scoped token). Deployed code now
+  always equals the repository
+- **Shared rules on the server:** `packages/domain` is bundled to `supabase/functions/_shared/domain.js`; a unit test
+  fails if the bundle is stale
+- **Month-end** (`month-end` function): *preview* (re-runnable; also automatic on the 1st–5th), *finalise* (one
+  transaction: run + ledger entries + statements; permanent; months in order; only after the month ends), *verify*
+  (re-runs and compares the fingerprint). Only **paid** viewing counts (trials and test grants excluded). Net receipts =
+  paid − GST − Stripe fee (fee now recorded per invoice)
+- **Contracts:** versioned, append-only; admin "New version" form (licence end, pause, referral %/months, pause new
+  referrals, minimum payout). Payee/ABN/GST fields on creators (guardian payee for under-18s)
+- **Referrals:** terms frozen at attribution; refused for self-referral or creators not accepting referrals; link visits
+  counted (anonymous, once per browser per day); funnel on admin Referrals and in the creator portal
+- **Payouts:** due-today list (final months only; below minimum → carried forward), batch creation, maker/checker approval,
+  export, confirmation that requires a bank reference and the exact total, cancel/fail releases entries. The database
+  makes paying any entry twice impossible. (Bank file = Phase 5)
+- **Creator portal:** statements, printable statement (Print → Save as PDF), referral link with copy, funnel, minutes
+  watched by paying families, earnings detail
+- **Operator guide:** `docs/MONTHLY_CLOSE.md`
+- **Acceptance tests (DoD) — all pass against the database:**
+  - **7 (payouts)** — `select tests.run_finance_checks()` → 28/28 (in a rolled-back transaction): carry-forward below
+    minimum, no double payout, amount must match entries, maker ≠ checker, confirm needs reference + exact total, paid
+    batch can't be cancelled, cancelled entries re-payable, final runs/ledger/statements immutable, months in order,
+    creators see only their own, families see nothing
+  - **3, 4, 5** — real November test data (2 paying test families, real Stripe test invoices incl. an annual plan and a
+    refund, real paid viewing, 6 contracts incl. paused (Kit) and ended (Rosa), guardian-managed (Bee), Pip referral
+    10% × 120 months): `scripts/verify-month-end.py 2026-11` independently recomputes from raw tables → **ALL MATCH**
+    to the cent (pool A$28.68: Ava 14.33, Bee 9.92, Theo 4.43; Pip referral 5.72; refund reversals −3.92); preview
+    re-runs give the same fingerprint
+  - October 2026 finalised for real (empty month): verify → reproduces; second finalise refused
+  - Security suites still pass: RLS 32/32, journey 19/19
+- **Still open:** acceptance test 2 (founder A$9.99 grandfathered, A$4.99 × 3 promo) needs those prices/coupons created
+  in Stripe — the price-versioning mechanism exists; to do with your pricing decision. GST/withholding treatment of
+  creator payments awaits your accountant

@@ -20,3 +20,11 @@ heartbeat data kept 90 days; captions required at launch; no offline downloads i
 |---|---|---|
 | 7 Nov 2026 | **No Stripe Tax** | Prices are set GST-inclusive in Stripe; GST is recorded as 1/11 of each payment for reporting. Revisit only if selling outside Australia. |
 | 7 Nov 2026 | **Free trial: yes, compliant** | 7 days, card required (cards / Apple Pay / Google Pay only), one per family and per card, both plans. Terms shown before sign-up; cancel online anytime (no charge during trial); reminder queued before the trial ends; trial viewing excluded from royalties. Length is one setting (`TRIAL_DAYS`). |
+
+## New for Phase 4 (7 Nov 2026)
+- **Accountant: GST and withholding on creator payments.** Are royalties/referral payments to creators taxable supplies
+  (if the creator is GST-registered we may need recipient-created tax invoices)? Any PAYG withholding where a creator has
+  no ABN? For under-18 creators paid via a guardian, whose income is it? Statements currently say "being confirmed".
+- **Founder / promo pricing (acceptance test 2).** Confirm whether you want a founder price (e.g. A$9.99 locked) and a
+  launch promo (e.g. A$4.99 for 3 months) — I'll create them in Stripe test mode and test the transitions.
+- **Real contract terms** for your first creators (rate, paid-month limit, licence length, minimum payout).
