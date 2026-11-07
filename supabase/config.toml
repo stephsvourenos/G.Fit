@@ -1,0 +1,15 @@
+# Supabase CLI settings used by the automatic deploy (GitHub Actions).
+project_id = "iwwnexttdqksrwqafazi"
+
+# Functions called by Stripe, Mux or the scheduler check their own signatures / codes,
+# so the platform's sign-in check is switched off for them. Everything else requires sign-in.
+[functions.mux-webhook]
+verify_jwt = false
+[functions.stripe-webhook]
+verify_jwt = false
+[functions.aggregate-playback]
+verify_jwt = false
+[functions.billing-reconcile]
+verify_jwt = false
+[functions.month-end]
+verify_jwt = false

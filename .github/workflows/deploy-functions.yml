@@ -1,0 +1,35 @@
+# Deploys every Supabase Edge Function exactly as it is in the repository whenever
+# function code changes on main (or when run by hand from the Actions tab).
+# Needs one repository secret: SUPABASE_ACCESS_TOKEN (Supabase → Account → Access Tokens).
+name: Deploy Supabase functions
+
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/functions/**", "supabase/config.toml", "packages/domain/src/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-functions
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: iwwnexttdqksrwqafazi
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check shared rules bundle is up to date and tests pass
+        run: pnpm --filter @app/domain test
+      - name: Stop if the token secret is missing
+        run: test -n "$SUPABASE_ACCESS_TOKEN" || (echo "Add the SUPABASE_ACCESS_TOKEN repository secret" && exit 1)
+      - name: Deploy all functions
+        run: npx --yes supabase@2.48.3 functions deploy --project-ref "$PROJECT_REF" --use-api
