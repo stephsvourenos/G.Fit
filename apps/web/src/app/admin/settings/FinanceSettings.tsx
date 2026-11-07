@@ -80,6 +80,13 @@ export function FinanceSettings() {
               {BANKS.map(([c, n]) => <option key={c} value={c}>{n} ({c})</option>)}
             </select>
           </label>
+          {s.bank_code === "ANZ" && (
+            <p className="rounded-lg bg-sky/10 p-3 text-ink sm:col-span-2">
+              <b>ANZ Internet Banking for Business:</b> ANZ lets you choose any 6-digit User ID (e.g. 000000), needs no balancing line (leave the box
+              below unticked), and the business name should be letters only. Upload under Payments → Pay employees → Import a payroll file.
+              If you use ANZ Transactive instead, use the User ID ANZ gives you.
+            </p>
+          )}
           <label>Direct Entry User ID (6 digits, from your bank)<input value={s.de_user_id ?? ""} onChange={(e) => set("de_user_id", e.target.value)} inputMode="numeric" maxLength={6} className={field} /></label>
           <label>Direct entry user name (as registered with the bank)<input value={s.de_user_name ?? ""} onChange={(e) => set("de_user_name", e.target.value)} maxLength={26} className={field} /></label>
           <label>Name on creators’ statements (max 16)<input value={s.remitter_name ?? ""} onChange={(e) => set("remitter_name", e.target.value)} maxLength={16} placeholder="G FIT" className={field} /></label>
