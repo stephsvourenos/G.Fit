@@ -11,5 +11,3 @@ verify_jwt = false
 verify_jwt = false
 [functions.billing-reconcile]
 verify_jwt = false
-[functions.month-end]
-verify_jwt = false
