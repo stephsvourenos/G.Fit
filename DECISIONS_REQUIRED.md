@@ -30,7 +30,8 @@ heartbeat data kept 90 days; captions required at launch; no offline downloads i
 - **Real contract terms** for your first creators (rate, paid-month limit, licence length, minimum payout).
 
 ## New for Phase 5 (7 Nov 2026)
-- **Which bank is the business account with?** Bulk payment files differ slightly by bank (e.g. whether a balancing
-  line is needed). Once direct entry is switched on, enter the details in Admin → Configuration yourself — not in chat.
+- ✅ **Bank: ANZ** (7 Nov 2026). ANZ Internet Banking for Business: any 6-digit User ID you choose, no balancing line,
+  business name letters only; upload via Payments → Pay employees → Import a payroll file. Enter details in Admin →
+  Configuration yourself (not in chat) and run the test file.
 - **Video delivery cost** for the margin report (A$ per 1,000 minutes) — I'll fill in an estimate from Mux pricing
   when we're on a paid Mux plan; until then margin shows creator costs only.
