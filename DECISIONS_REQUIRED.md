@@ -14,3 +14,9 @@ Everything else has a sensible default (see `docs/BRIEF_REVIEW.md` §11) and I'l
 Defaults I'm using now (no action needed): AUD/Australia first; prices A$14.99 monthly / A$149.99 annual
 (sample); max 6 profiles; Supabase in Sydney; mobile apps sign-in only until the app-store billing decision;
 heartbeat data kept 90 days; captions required at launch; no offline downloads in MVP.
+
+## Decided
+| Date | Decision | Detail |
+|---|---|---|
+| 7 Nov 2026 | **No Stripe Tax** | Prices are set GST-inclusive in Stripe; GST is recorded as 1/11 of each payment for reporting. Revisit only if selling outside Australia. |
+| 7 Nov 2026 | Free trial — **open** | Analysis given in chat 7 Nov 2026; awaiting your choice. Technically a one-line change either way (Checkout `trial_period_days`). |

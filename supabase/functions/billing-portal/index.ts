@@ -9,7 +9,10 @@ Deno.serve(async (req) => {
   try {
     const auth = req.headers.get("Authorization") ?? "";
     const { origin } = await req.json().catch(() => ({}));
-    const r = await asUser(auth, "billing_customers?select=stripe_customer_id");
+    // Our own household only — staff accounts can read every family's billing rows.
+    const hh = (await asUser(auth, "households?select=id")).data?.[0]?.id;
+    if (!hh) return json({ error: "Please sign in first" }, 401);
+    const r = await asUser(auth, `billing_customers?household_id=eq.${hh}&select=stripe_customer_id`);
     const customer = r.data?.[0]?.stripe_customer_id;
     if (!customer) return json({ error: "No membership to manage yet" }, 404);
     const s = await stripe("/billing_portal/sessions", {
