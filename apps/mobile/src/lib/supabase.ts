@@ -9,8 +9,10 @@ import { AppState, Platform } from "react-native";
  * Put them in apps/mobile/.env (see .env.example). Without them the app runs on
  * built-in sample data.
  */
-const URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const KEY = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+// Defaults are the development project's PUBLIC address and publishable key, so cloud-published
+// previews (which have no .env file) connect to it. Production builds set their own values.
+const URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "https://iwwnexttdqksrwqafazi.supabase.co";
+const KEY = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_wk7bojwHFpsZlOBqOcCFPA_os_1w4z6";
 
 export const supabaseConfigured = Boolean(URL && KEY);
 

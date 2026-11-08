@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "PROJECT_NAME",
-    "slug": "project-name",
+    "name": "G.Fit",
+    "slug": "gfit",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -44,6 +44,16 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "owner": "stephanies88s-team",
+    "runtimeVersion": "exposdk:58.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/5dcb1501-dddc-406a-8bc9-e88f78b69bfc"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5dcb1501-dddc-406a-8bc9-e88f78b69bfc"
+      }
     }
   }
 }

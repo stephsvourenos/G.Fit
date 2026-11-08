@@ -1,0 +1,16 @@
+# Publishes the app to the "preview" channel whenever main changes, so it opens on your phone in Expo Go.
+# Runs on Expo's servers (the repository is linked to the Expo project "gfit"); nothing goes to the app stores.
+name: Phone preview
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  publish_preview:
+    name: Publish to Expo Go preview
+    type: update
+    params:
+      channel: preview
+      platform: all
+      message: Preview from main
