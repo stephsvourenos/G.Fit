@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AGE_BAND_LABEL, CATEGORY_LABEL, decidePlayback, formatDuration , suitabilityLabel } from "@app/domain";
+import { CATEGORY_LABEL, decidePlayback, formatDuration, suitabilityLabel } from "@app/domain";
 import { instructors, workouts } from "@app/mock-data";
 import { Thumb } from "@/components/Thumb";
 import { WatchShell } from "@/components/WatchShell";

@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { AGE_BAND_LABEL, CATEGORY_LABEL, decidePlayback, formatDuration , suitabilityLabel } from "@app/domain";
+import { CATEGORY_LABEL, decidePlayback, formatDuration, suitabilityLabel } from "@app/domain";
 import { instructors, workouts } from "@app/mock-data";
 import { useHousehold } from "@/lib/household";
 import { Thumb } from "@/ui/Thumb";
