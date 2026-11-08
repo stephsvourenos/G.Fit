@@ -9,7 +9,7 @@ Everything else has a sensible default (see `docs/BRIEF_REVIEW.md` §11) and I'l
 | D3 | Who is the second approver ("checker") for creator payouts? | Phase 5 (first live payout) | Your bookkeeper/accountant with a finance-only role | Open |
 | D4 | Founding referral terms (10% for 120 paid months) — confirm, cap, or taper? | Signing founding creator contracts | Run the 10-year model at your real price/churn first; consider a lifetime cap or a taper after year 3 | Open |
 | D5 | Launch content target | Phase 6 launch date | ≥ 60 workouts, ≥ 10 per age band, all captioned | Open |
-| D6 | Brand name | App-store listings & domain (Phase 6) | Keep `PROJECT_NAME` placeholder until then — it's one config value | Open |
+| D6 | Brand name | App-store listings & domain (Phase 6) | Working name **G.Fit** (8 Nov 2026) — confirm final name + trademark check before app-store listings and buying the domain; it's one config value | Working name set |
 
 Defaults I'm using now (no action needed): AUD/Australia first; prices A$14.99 monthly / A$149.99 annual
 (sample); max 6 profiles; Supabase in Sydney; mobile apps sign-in only until the app-store billing decision;

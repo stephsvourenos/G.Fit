@@ -1,9 +1,9 @@
 /**
- * Branding is undecided. Everything user-facing reads from here, so renaming
- * the product is a one-file change (plus app-store listings later).
+ * Working name "G.Fit" (final name to be confirmed before app-store listings and the domain).
+ * Everything user-facing reads from here, so renaming the product is a one-file change.
  */
 export const brand = {
-  name: process.env.NEXT_PUBLIC_BRAND_NAME ?? "PROJECT_NAME",
+  name: process.env.NEXT_PUBLIC_BRAND_NAME ?? "G.Fit",
   tagline: "Move together. Every age, every day.",
   supportEmail: "support@example.com",
   defaultCurrency: "AUD" as const,

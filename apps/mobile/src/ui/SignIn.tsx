@@ -24,7 +24,9 @@ export function SignIn() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={s.root}>
       <View style={s.card}>
-        <Text style={s.brand}>{brand.name}</Text>
+        <Text style={s.logo}>{brand.name}</Text>
+        <Text style={s.tagline}>{brand.tagline}</Text>
+        <Text style={s.intro}>Short, fun workouts the whole family can do together — from little kids to grown-ups, with a profile for everyone.</Text>
         <Text style={s.h1}>Sign in</Text>
         <Text style={s.sub}>Use your family’s household account.</Text>
         <TextInput
@@ -67,7 +69,9 @@ export function SignIn() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.ink, justifyContent: "center", padding: 24 },
   card: { width: "100%", maxWidth: 380, alignSelf: "center" },
-  brand: { color: C.coral, fontWeight: "800", letterSpacing: 1 },
+  logo: { color: C.coral, fontWeight: "900", fontSize: 40, letterSpacing: -0.5 },
+  tagline: { color: C.paper, fontWeight: "700", fontSize: 18, marginTop: 4 },
+  intro: { color: C.muted, fontSize: 15, lineHeight: 21, marginTop: 8, marginBottom: 28 },
   h1: { color: C.paper, fontSize: 32, fontWeight: "700", marginTop: 12 },
   sub: { color: C.muted, marginTop: 4, marginBottom: 20 },
   input: { backgroundColor: C.ink3, color: C.paper, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, marginTop: 10 },
