@@ -96,6 +96,20 @@ var AGE_BAND_LABEL = {
   "16-17": "16\u201317",
   adult: "Adult"
 };
+var BAND_FROM = { "under-6": 0, "6-8": 6, "9-12": 9, "13-15": 13, "16-17": 16, adult: 18 };
+var BAND_TO = { "under-6": 5, "6-8": 8, "9-12": 12, "13-15": 15, "16-17": 17, adult: 99 };
+function suitabilityLabel(bands) {
+  const idx = [...new Set(bands)].map((b) => AGE_BANDS.indexOf(b)).filter((i) => i >= 0).sort((a, b) => a - b);
+  if (idx.length === 0) return "Suitable for all ages";
+  if (idx.length === AGE_BANDS.length) return "Suitable for all ages";
+  const contiguous = idx.every((v, k) => k === 0 || v === idx[k - 1] + 1);
+  if (!contiguous) return `Suitable for: ${idx.map((i) => AGE_BAND_LABEL[AGE_BANDS[i]]).join(", ")}`;
+  const first = AGE_BANDS[idx[0]], last = AGE_BANDS[idx[idx.length - 1]];
+  if (first === "adult") return "Suitable for adults";
+  if (last === "adult") return first === "under-6" ? "Suitable for all ages" : `Suitable for ages ${BAND_FROM[first]} and up`;
+  if (first === "under-6") return `Suitable for under ${BAND_TO[last] + 1}s`;
+  return `Suitable for ages ${BAND_FROM[first]}\u2013${BAND_TO[last]}`;
+}
 function isChildBand(band) {
   return band !== "adult";
 }
@@ -1187,6 +1201,7 @@ export {
   royaltyEligibleInMonth,
   runMonthEnd,
   runRoyaltyPool,
+  suitabilityLabel,
   sumMinor,
   validateAbaRemitter
 };

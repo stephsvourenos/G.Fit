@@ -12,6 +12,26 @@ export const AGE_BAND_LABEL: Record<AgeBand, string> = {
   adult: "Adult",
 };
 
+const BAND_FROM: Record<AgeBand, number> = { "under-6": 0, "6-8": 6, "9-12": 9, "13-15": 13, "16-17": 16, adult: 18 };
+const BAND_TO: Record<AgeBand, number> = { "under-6": 5, "6-8": 8, "9-12": 12, "13-15": 15, "16-17": 17, adult: 99 };
+
+/**
+ * Plain-English "who is this for": "Suitable for all ages", "Ages 6–12", "Ages 9 and up", "Under 9",
+ * "Adults only" — or a list when the bands aren't next to each other.
+ */
+export function suitabilityLabel(bands: readonly AgeBand[]): string {
+  const idx = [...new Set(bands)].map((b) => AGE_BANDS.indexOf(b)).filter((i) => i >= 0).sort((a, b) => a - b);
+  if (idx.length === 0) return "Suitable for all ages";
+  if (idx.length === AGE_BANDS.length) return "Suitable for all ages";
+  const contiguous = idx.every((v, k) => k === 0 || v === idx[k - 1]! + 1);
+  if (!contiguous) return `Suitable for: ${idx.map((i) => AGE_BAND_LABEL[AGE_BANDS[i]!]).join(", ")}`;
+  const first = AGE_BANDS[idx[0]!]!, last = AGE_BANDS[idx[idx.length - 1]!]!;
+  if (first === "adult") return "Suitable for adults";
+  if (last === "adult") return first === "under-6" ? "Suitable for all ages" : `Suitable for ages ${BAND_FROM[first]} and up`;
+  if (first === "under-6") return `Suitable for under ${BAND_TO[last] + 1}s`;
+  return `Suitable for ages ${BAND_FROM[first]}–${BAND_TO[last]}`;
+}
+
 export function isChildBand(band: AgeBand): boolean {
   return band !== "adult";
 }

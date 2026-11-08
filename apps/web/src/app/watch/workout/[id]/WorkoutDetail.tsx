@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AGE_BAND_LABEL, CATEGORY_LABEL, decidePlayback, formatDuration } from "@app/domain";
+import { AGE_BAND_LABEL, CATEGORY_LABEL, decidePlayback, formatDuration , suitabilityLabel } from "@app/domain";
 import { instructors, workouts } from "@app/mock-data";
 import { Thumb } from "@/components/Thumb";
 import { WatchShell } from "@/components/WatchShell";
@@ -59,7 +59,7 @@ function Detail({ id }: { id: string }) {
           </button>
         </div>
         <p className="mt-4 text-xs text-muted">
-          Suitable for: {w.ageBands.map((b) => AGE_BAND_LABEL[b]).join(", ")}. Stop if anything hurts, and make sure
+          {suitabilityLabel(w.ageBands)}. Stop if anything hurts, and make sure
           there’s clear space around you. Younger children should move with an adult nearby.
         </p>
 

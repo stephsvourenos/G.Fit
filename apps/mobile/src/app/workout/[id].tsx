@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { AGE_BAND_LABEL, CATEGORY_LABEL, decidePlayback, formatDuration } from "@app/domain";
+import { AGE_BAND_LABEL, CATEGORY_LABEL, decidePlayback, formatDuration , suitabilityLabel } from "@app/domain";
 import { instructors, workouts } from "@app/mock-data";
 import { useHousehold } from "@/lib/household";
 import { Thumb } from "@/ui/Thumb";
@@ -28,7 +28,7 @@ export default function WorkoutDetail() {
         ) : (
           <Text style={[s.meta, { marginTop: 20 }]}>🔒 Not available on this profile ({decision.reason})</Text>
         )}
-        <Text style={s.small}>Suitable for {w.ageBands.map((b) => AGE_BAND_LABEL[b]).join(", ")}. Clear some space and stop if anything hurts.</Text>
+        <Text style={s.small}>{suitabilityLabel(w.ageBands)}. Clear some space and stop if anything hurts.</Text>
       </View>
     </ScrollView>
   );
