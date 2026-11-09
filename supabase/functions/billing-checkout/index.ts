@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
         ? `${money(offer.priceMinor)} per ${per} for ${offer.months} ${per}s, then ${amount} per ${per}`
         : `${money(offer.priceMinor)} per ${per}`)
       : offer?.kind === "founder"
-        ? `${amount} per ${per} (founding-family price, kept while your membership continues)`
+        ? `${amount} per ${per} as a founding family, kept for as long as your membership continues`
         : `${amount} per ${per}`;
     const terms = eligible
       ? `Free for ${TRIAL_DAYS} days. Then ${pricePhrase} (GST included), first charged on ${firstCharge} and renewing every ${per} until you cancel. Cancel online anytime in your family account — cancel before ${firstCharge} and you won't be charged. One free trial per family.`
