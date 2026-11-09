@@ -1,7 +1,7 @@
 // Starts Stripe Checkout (Stripe's own secure payment page) for the signed-in
 // family. TEST MODE until launch. The card never touches our servers.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { asServer, asUser, cors, json } from "../_shared/http.ts";
+import { asServer, asUser, cors, json, serverError } from "../_shared/http.ts";
 import { safeOrigin } from "../_shared/origins.ts";
 import { PLAN_LOOKUP_KEYS, stripe, TRIAL_DAYS, trialEligible } from "../_shared/stripe.ts";
 
@@ -163,6 +163,6 @@ Deno.serve(async (req) => {
     return json({ url: session.url });
   } catch (e) {
     console.error(e);
-    return json({ error: (e as Error).message }, 500);
+    return serverError("billing-checkout", e);
   }
 });

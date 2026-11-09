@@ -5,7 +5,7 @@
 // The rules are the SAME code as the app and unit tests (packages/domain → _shared/domain.js).
 // Only paid viewing counts (trials and test memberships are excluded).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { asServer, cors, json, staffRoles, SUPABASE_URL, ANON_KEY } from "../_shared/http.ts";
+import { asServer, cors, json, staffRoles, SUPABASE_URL, ANON_KEY, serverError } from "../_shared/http.ts";
 import {
   buildStatement,
   computePayable,
@@ -289,6 +289,6 @@ Deno.serve(async (req) => {
     return json({ ok: true, ...summary });
   } catch (e) {
     console.error(e);
-    return json({ error: (e as Error).message }, 500);
+    return serverError("month-end", e);
   }
 });

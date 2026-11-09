@@ -4,7 +4,7 @@
 //   set_active — switch a promo code on/off                                                                [admin]
 // Prices themselves are never edited here: a price change is a new Stripe price, so existing members keep theirs.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { ANON_KEY, asServer, cors, json, staffRoles, SUPABASE_URL } from "../_shared/http.ts";
+import { ANON_KEY, asServer, cors, json, staffRoles, SUPABASE_URL, serverError } from "../_shared/http.ts";
 import { PLAN_LOOKUP_KEYS, stripe } from "../_shared/stripe.ts";
 
 Deno.serve(async (req) => {
@@ -90,6 +90,6 @@ Deno.serve(async (req) => {
     }
     return json({ error: "Unknown action" }, 400);
   } catch (e) {
-    return json({ error: String((e as Error).message ?? e) }, 500);
+    return serverError("pricing-admin", e);
   }
 });

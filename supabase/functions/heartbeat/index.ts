@@ -3,7 +3,7 @@
 // Accepts a heartbeat only for a session this server opened, for a profile the
 // caller owns, within 12 hours of starting. Duplicate sequence numbers are ignored.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { asServer, asUser, cors, json } from "../_shared/http.ts";
+import { asServer, asUser, cors, json, serverError } from "../_shared/http.ts";
 
 const MIN_GAP_MS = 2_000;
 const MAX_SESSION_MS = 12 * 3600_000;
@@ -54,6 +54,6 @@ Deno.serve(async (req) => {
     return json({ ok: true });
   } catch (e) {
     console.error(e);
-    return json({ error: (e as Error).message }, 500);
+    return serverError("heartbeat", e);
   }
 });

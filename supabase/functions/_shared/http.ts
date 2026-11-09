@@ -40,3 +40,22 @@ export async function staffRoles(auth: string): Promise<string[]> {
   const r = await asUser(auth, "staff_members?select=role");
   return r.ok && Array.isArray(r.data) ? r.data.map((x: { role: string }) => x.role) : [];
 }
+
+/**
+ * Report a server-function failure to Admin → System health (grouped by function + message), then answer 500.
+ * Never includes request bodies or personal data — just the function name and the error message.
+ */
+export async function serverError(fn: string, e: unknown, status = 500, publicMessage?: string): Promise<Response> {
+  const message = String((e as Error)?.message ?? e).slice(0, 300);
+  try {
+    await asServer("rpc/record_system_event", {
+      method: "POST",
+      body: JSON.stringify({
+        p_source: "function", p_level: "error", p_title: `${fn}: ${message}`,
+        p_detail: { function: fn, stack: String((e as Error)?.stack ?? "").split("\n").slice(0, 4).join(" | ").slice(0, 600) },
+        p_fingerprint: `function:${fn}:${message.replace(/[0-9a-f-]{8,}|\d+/gi, "N").slice(0, 120)}`,
+      }),
+    });
+  } catch { /* never let reporting break the response */ }
+  return json({ error: publicMessage ?? message }, status);
+}

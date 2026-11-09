@@ -8,7 +8,7 @@
 //     emails; everyone else is "logged". Test families never get emailed by accident.
 //   * Production: sent to the family's sign-in email address.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { asServer, cors, json, staffRoles, SERVICE_KEY, SUPABASE_URL } from "../_shared/http.ts";
+import { asServer, cors, json, staffRoles, SERVICE_KEY, SUPABASE_URL, serverError } from "../_shared/http.ts";
 import { renderNotice } from "../_shared/domain.js";
 
 const APP_ENV = Deno.env.get("APP_ENV") ?? "development";
@@ -21,6 +21,23 @@ const ctx = {
   supportEmail: Deno.env.get("SUPPORT_EMAIL") || undefined,
 };
 const MAX_ATTEMPTS = 5;
+// Where System health problems are emailed (comma-separated). Not set → shown in Admin → System health only.
+const ALERT_TO = (Deno.env.get("ALERT_EMAIL") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+
+/** Email admins about NEW errors from the last day (each problem once; a fixed problem that comes back alerts again). */
+async function sendAlerts() {
+  if (!RESEND_KEY || !FROM || ALERT_TO.length === 0) return 0;
+  const since = new Date(Date.now() - 86400_000).toISOString();
+  const rows = (await asServer(`system_events?level=eq.error&resolved_at=is.null&alerted_at=is.null&last_at=gte.${since}&select=id,title,source,count,first_at&order=last_at.desc&limit=20`)).data ?? [];
+  if (!rows.length) return 0;
+  const site = ctx.siteUrl.replace(/\/$/, "");
+  const lines = rows.map((r: any) => `• ${r.title} (${r.source}, ${r.count}×, first ${new Date(r.first_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney" })})`);
+  const text = `${rows.length} new problem${rows.length === 1 ? "" : "s"} in ${ctx.brandName}${APP_ENV === "production" ? "" : ` (${APP_ENV})`}:\n\n${lines.join("\n")}\n\nDetails and "mark resolved": ${site}/admin/health/`;
+  const esc = (x: string) => x.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  await deliver(ALERT_TO.join(","), { subject: `[${ctx.brandName}] ${rows.length} new problem${rows.length === 1 ? "" : "s"}`, text, html: `<pre style="font-family:inherit;white-space:pre-wrap">${esc(text)}</pre>` }, `alert-${rows.map((r: any) => r.id).join("-")}`);
+  await asServer(`system_events?id=in.(${rows.map((r: any) => r.id).join(",")})`, { method: "PATCH", body: JSON.stringify({ alerted_at: new Date().toISOString() }) });
+  return rows.length;
+}
 
 async function ownerEmail(household: string): Promise<string | null> {
   const owner = (await asServer(`households?id=eq.${household}&select=owner_user_id`)).data?.[0]?.owner_user_id;
@@ -33,7 +50,7 @@ async function deliver(to: string, mail: { subject: string; text: string; html: 
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json", "Idempotency-Key": idempotency },
-    body: JSON.stringify({ from: FROM, to: [to], subject: mail.subject, text: mail.text, html: mail.html }),
+    body: JSON.stringify({ from: FROM, to: to.split(","), subject: mail.subject, text: mail.text, html: mail.html }),
   });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(`email service ${r.status}: ${data?.message ?? "error"}`);
@@ -79,7 +96,9 @@ Deno.serve(async (req) => {
     if (nonce) {
       const ok = await asServer("rpc/consume_cron_nonce", { method: "POST", body: JSON.stringify({ n: nonce }) });
       if (ok.data !== true) return json({ error: "Not allowed" }, 403);
-      return json({ ok: true, ...(await process(50)) });
+      const result = await process(50);
+      const alerts = await sendAlerts().catch(() => 0);
+      return json({ ok: true, ...result, alerts });
     }
     const roles = await staffRoles(req.headers.get("Authorization") ?? "");
     if (!roles.includes("admin") && !roles.includes("support")) return json({ error: "Admin or support staff only" }, 403);
@@ -89,10 +108,10 @@ Deno.serve(async (req) => {
       return json({ ok: true, ...(await process(1, body.id)) });
     }
     if (body.action === "status") {
-      return json({ ok: true, provider: RESEND_KEY && FROM ? "connected" : "not-connected", production: APP_ENV === "production", allowlist: ALLOW.size, from: FROM || null });
+      return json({ ok: true, provider: RESEND_KEY && FROM ? "connected" : "not-connected", production: APP_ENV === "production", allowlist: ALLOW.size, from: FROM || null, alerts_to: ALERT_TO.length });
     }
     return json({ ok: true, ...(await process(50)) });
   } catch (e) {
-    return json({ error: String((e as Error).message ?? e) }, 500);
+    return serverError("send-emails", e);
   }
 });

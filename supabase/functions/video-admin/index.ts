@@ -4,7 +4,7 @@
 //   refresh        → ask Mux for the latest status
 // Replacing a video deletes the old one from Mux (the free plan holds 10 videos).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { asServer, cors, json, staffRoles } from "../_shared/http.ts";
+import { asServer, cors, json, staffRoles, serverError } from "../_shared/http.ts";
 import { mux, SAMPLE_VIDEO_URL, syncWorkoutVideo } from "../_shared/mux.ts";
 
 Deno.serve(async (req) => {
@@ -56,6 +56,6 @@ Deno.serve(async (req) => {
     return json({ error: "Unknown action" }, 400);
   } catch (e) {
     console.error(e);
-    return json({ error: (e as Error).message }, 500);
+    return serverError("video-admin", e);
   }
 });

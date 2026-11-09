@@ -6,7 +6,7 @@
 //   in the last 10 minutes.
 // Only then does it hand back short-lived signed links to the video.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { asServer, asUser, cors, json } from "../_shared/http.ts";
+import { asServer, asUser, cors, json, serverError } from "../_shared/http.ts";
 import { signPlayback } from "../_shared/mux.ts";
 
 const INTENSITY = ["gentle", "moderate", "energetic"];
@@ -76,6 +76,6 @@ Deno.serve(async (req) => {
     return json({ allowed: true, video: true, playbackId: w.mux_playback_id, tokens: { playback, thumbnail, storyboard }, expiresInSec: ttl, sessionId });
   } catch (e) {
     console.error(e);
-    return json({ error: (e as Error).message }, 500);
+    return serverError("playback-token", e);
   }
 });

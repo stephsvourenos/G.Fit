@@ -4,7 +4,7 @@
 // Recomputes whole household-months so monthly caps and concurrency rules
 // see every session together. Safe to run repeatedly.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { asServer, json, staffRoles } from "../_shared/http.ts";
+import { asServer, json, staffRoles, serverError } from "../_shared/http.ts";
 import {
   aggregateQualifiedViews,
   DEFAULT_PLAYBACK_POLICY as P,
@@ -118,6 +118,6 @@ Deno.serve(async (req) => {
     return json({ ok: true, householdMonths: work.size, sessionsEvaluated: sessionsDone, qualifiedViews: viewsWritten, policy: P.version });
   } catch (e) {
     console.error(e);
-    return json({ error: (e as Error).message }, 500);
+    return serverError("aggregate-playback", e);
   }
 });

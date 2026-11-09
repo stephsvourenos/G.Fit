@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { brand } from "@app/config";
 import { PrototypeBanner } from "@/components/PrototypeBanner";
+import { ErrorReporter } from "@/components/ErrorReporter";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import "./globals.css";
 
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col">
         <PrototypeBanner />
         <ReferralCapture />
+        <ErrorReporter />
         {children}
       </body>
     </html>

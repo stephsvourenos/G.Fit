@@ -2,7 +2,7 @@
 // Re-reads every Stripe membership and recent invoices so our records match Stripe
 // even if a webhook was ever missed.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { asServer, cors, json, staffRoles } from "../_shared/http.ts";
+import { asServer, cors, json, staffRoles, serverError } from "../_shared/http.ts";
 import { stripe, syncInvoice, syncSubscription } from "../_shared/stripe.ts";
 import { runTestScenario } from "../_shared/stripe-test.ts";
 
@@ -45,6 +45,6 @@ Deno.serve(async (req) => {
     return json({ ok: true, customers: customers.length, subscriptions: subs, invoices, changes });
   } catch (e) {
     console.error(e);
-    return json({ error: (e as Error).message }, 500);
+    return serverError("billing-reconcile", e);
   }
 });

@@ -1,6 +1,6 @@
 // Opens Stripe's customer portal: change plan, update card, see invoices, cancel.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { asUser, cors, json } from "../_shared/http.ts";
+import { asUser, cors, json, serverError } from "../_shared/http.ts";
 import { safeOrigin } from "../_shared/origins.ts";
 import { stripe } from "../_shared/stripe.ts";
 
@@ -22,6 +22,6 @@ Deno.serve(async (req) => {
     return json({ url: s.url });
   } catch (e) {
     console.error(e);
-    return json({ error: (e as Error).message }, 500);
+    return serverError("billing-portal", e);
   }
 });

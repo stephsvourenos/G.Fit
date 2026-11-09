@@ -2,7 +2,7 @@
 // re-read Stripe's current object instead of trusting the event (events can
 // arrive late, twice, or out of order). A failure returns 500 so Stripe retries.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { asServer, json } from "../_shared/http.ts";
+import { asServer, json, serverError } from "../_shared/http.ts";
 import { isProduction, queueTrialEndingNotice, syncCharge, syncInvoice, syncSubscription, verifyStripeSignature } from "../_shared/stripe.ts";
 
 const SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     else if ((type.startsWith("refund.") || type === "charge.refund.updated") && obj.charge) outcome = await syncCharge(obj.charge);
   } catch (e) {
     console.error(type, e);
-    return json({ error: "processing failed; Stripe will retry" }, 500);
+    return serverError(`stripe-webhook ${type}`, e, 500, "processing failed; Stripe will retry");
   }
 
   await asServer("billing_events", {

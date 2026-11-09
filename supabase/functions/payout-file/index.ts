@@ -6,7 +6,7 @@
 //   reconcile  — upload your bank statement CSV; payments are matched by reference + amount
 // Nothing here moves money: you upload the file to your bank yourself.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { asServer, cors, json, staffRoles, SUPABASE_URL, ANON_KEY } from "../_shared/http.ts";
+import { asServer, cors, json, staffRoles, SUPABASE_URL, ANON_KEY, serverError } from "../_shared/http.ts";
 import { generateAba, parseAba, parseBankCsv, reconcileBatch, validateAbaRemitter } from "../_shared/domain.js";
 
 const TZ = "Australia/Sydney";
@@ -187,6 +187,6 @@ Deno.serve(async (req) => {
 
     return json({ error: "Unknown action" }, 400);
   } catch (e) {
-    return json({ error: String((e as Error).message ?? e) }, 500);
+    return serverError("payout-file", e);
   }
 });
