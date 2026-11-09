@@ -423,9 +423,9 @@ function aggregateQualifiedViews(sessions, evaluations, p = DEFAULT_PLAYBACK_POL
   const views = [];
   const anomalies = [];
   for (const { e, s } of qualifying) {
-    const day = dayKey(s.startedAt, p.timeZone);
-    const month = day.slice(0, 7);
-    const dKey = `${s.profileId}|${s.workoutId}|${day}`;
+    const day2 = dayKey(s.startedAt, p.timeZone);
+    const month = day2.slice(0, 7);
+    const dKey = `${s.profileId}|${s.workoutId}|${day2}`;
     const mKey = `${s.profileId}|${s.workoutId}|${month}`;
     const pKey = `${s.profileId}|${month}`;
     if ((perDay.get(dKey) ?? 0) >= p.maxCreditsPerWorkoutPerDay) {
@@ -450,7 +450,7 @@ function aggregateQualifiedViews(sessions, evaluations, p = DEFAULT_PLAYBACK_POL
       profileId: s.profileId,
       workoutId: s.workoutId,
       creatorId: s.creatorId,
-      day,
+      day: day2,
       month,
       creditedSec: allowed,
       sessionId: s.sessionId
@@ -1136,6 +1136,87 @@ function reconcileBatch(payments, lines, batchRef) {
   }
   return { ...each, mode: "unmatched", totalMinor: total };
 }
+
+// src/emails.ts
+var TZ = "Australia/Sydney";
+var day = (iso) => typeof iso === "string" && iso ? new Date(iso).toLocaleDateString("en-AU", { timeZone: TZ, weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "the end of your current period";
+var aud = (m) => typeof m === "number" ? `A$${(m / 100).toFixed(2)}` : "your plan\u2019s price";
+var per = (i) => i === "year" ? "year" : "month";
+var esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function pricePhrase(d) {
+  const p = per(d.interval);
+  const now = aud(d.amount_minor);
+  if (typeof d.then_minor === "number" && typeof d.amount_minor === "number" && d.then_minor !== d.amount_minor) {
+    const until = typeof d.discount_ends_at === "string" ? ` until ${day(d.discount_ends_at)}` : "";
+    return `${now} a ${p}${until}, then ${aud(d.then_minor)} a ${p}`;
+  }
+  return `${now} a ${p}`;
+}
+function build(subject, parts, ctx) {
+  const account2 = `${ctx.siteUrl.replace(/\/$/, "")}/watch/account/`;
+  const footer = `You\u2019re receiving this because you have a ${ctx.brandName} family membership. Manage or cancel anytime: ${account2}` + (ctx.supportEmail ? ` \xB7 Questions? ${ctx.supportEmail}` : "");
+  const text = [
+    ...parts.map((x) => x.p ? x.p : x.button ? `${x.button[0]}: ${x.button[1]}` : ""),
+    "",
+    "\u2014",
+    footer
+  ].join("\n\n");
+  const html = `<!doctype html><html><body style="margin:0;background:#f4f5f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0e1116"><div style="max-width:560px;margin:0 auto;padding:24px"><div style="background:#fff;border-radius:16px;padding:28px"><div style="font-weight:700;font-size:18px;margin-bottom:16px">${esc(ctx.brandName)}</div>` + parts.map(
+    (x) => x.p ? `<p style="font-size:16px;line-height:1.5;margin:0 0 14px">${esc(x.p)}</p>` : x.button ? `<p style="margin:20px 0"><a href="${esc(x.button[1])}" style="background:#0e1116;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600;display:inline-block">${esc(x.button[0])}</a></p>` : ""
+  ).join("") + `</div><p style="font-size:12px;color:#6b7280;line-height:1.5;padding:12px 8px">${esc(footer)}</p></div></body></html>`;
+  return { subject, text, html };
+}
+function renderNotice(kind, detail2, ctx) {
+  const account2 = `${ctx.siteUrl.replace(/\/$/, "")}/watch/account/`;
+  const b = ctx.brandName;
+  switch (kind) {
+    case "trial_started":
+      return build(`Your ${b} free trial has started`, [
+        { p: "Hi there," },
+        { p: `Your free trial has started \u2014 every workout is unlocked for your whole family until ${day(detail2.trial_end)}.` },
+        { p: `After that, your membership costs ${pricePhrase(detail2)} (GST included), charged to the card you added, and renews until you cancel.` },
+        { p: `Not for you? Cancel before ${day(detail2.trial_end)} in your family account and you won\u2019t be charged anything. We\u2019ll also remind you a few days before the trial ends.` },
+        { button: ["Manage membership", account2] }
+      ], ctx);
+    case "trial_ending":
+      return build(`Reminder: your ${b} free trial ends ${day(detail2.trial_end)}`, [
+        { p: "Hi there," },
+        { p: `Your free trial ends on ${day(detail2.trial_end)}.` },
+        detail2.cancel_at_period_end ? { p: "You\u2019ve already cancelled, so you won\u2019t be charged. Videos keep working until the trial ends." } : { p: `Unless you cancel before then, your membership will start and we\u2019ll charge ${pricePhrase(detail2)} (GST included) to the card you added. It renews until you cancel.` },
+        detail2.cancel_at_period_end ? { p: "Changed your mind? You can restart your membership from your family account." } : { p: "To cancel, open your family account and choose \u201CManage membership\u201D \u2014 it takes a minute and costs nothing during the trial." },
+        { button: ["Manage membership", account2] }
+      ], ctx);
+    case "membership_started":
+      return build(`Welcome to ${b} \u2014 your membership is active`, [
+        { p: "Hi there," },
+        { p: `Thanks for joining! We\u2019ve received your payment of ${aud(detail2.amount_minor)} (GST included) and your family membership is active.` },
+        { p: `It renews every ${per(detail2.interval)}${detail2.period_end ? ` (next on ${day(detail2.period_end)})` : ""} until you cancel. Your tax invoice is available in your family account under \u201CManage membership\u201D.` },
+        { button: ["Start a workout", account2] }
+      ], ctx);
+    case "payment_failed":
+      return build(`Action needed: your ${b} payment didn\u2019t go through`, [
+        { p: "Hi there," },
+        { p: `We couldn\u2019t take your payment of ${aud(detail2.amount_minor)}. This usually means the card has expired or the bank declined it.` },
+        { p: `Videos keep working for a few days while you sort it out.${detail2.next_attempt ? ` We\u2019ll try again on ${day(detail2.next_attempt)}.` : ""} Please update your card in your family account.` },
+        { button: ["Update card", account2] }
+      ], ctx);
+    case "cancellation_confirmed":
+      return build(`Your ${b} membership has been cancelled`, [
+        { p: "Hi there," },
+        { p: detail2.trialing ? `Your free trial has been cancelled and you won\u2019t be charged. Videos keep working until ${day(detail2.access_until)}.` : `Your membership has been cancelled and won\u2019t renew. Videos keep working until ${day(detail2.access_until)}, and you won\u2019t be charged again.` },
+        { p: "Changed your mind? You can undo this in your family account before then." },
+        { button: ["Manage membership", account2] }
+      ], ctx);
+    case "membership_ended":
+      return build(`Your ${b} membership has ended`, [
+        { p: "Hi there," },
+        { p: `Your family membership ended on ${day(detail2.ended_at)} and videos are now paused. Your family\u2019s profiles are kept, so you can pick up where you left off.` },
+        { button: ["Rejoin", account2] }
+      ], ctx);
+    default:
+      throw new Error(`No email template for "${kind}"`);
+  }
+}
 export {
   AGE_BANDS,
   AGE_BAND_LABEL,
@@ -1197,6 +1278,7 @@ export {
   reconcilePayments,
   refundNetMinor,
   refundReversals,
+  renderNotice,
   requiredFraction,
   royaltyEligibleInMonth,
   runMonthEnd,

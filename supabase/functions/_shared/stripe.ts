@@ -14,6 +14,8 @@ export const isProduction = APP_ENV === "production";
 export const PLAN_LOOKUP_KEYS = {
   monthly: "gfit_family_monthly_aud_v1",
   annual: "gfit_family_annual_aud_v1",
+  /** Founding families: A$9.99/month, kept for as long as the membership continues (grandfathered). */
+  founder_monthly: "gfit_family_monthly_founder_aud_v1",
 } as const;
 export type Plan = keyof typeof PLAN_LOOKUP_KEYS;
 
@@ -130,6 +132,7 @@ export async function syncSubscription(subscriptionId: string): Promise<string> 
     current_period_end: new Date(periodEnd * 1000).toISOString(),
     cancel_at_period_end: sub.cancel_at_period_end === true,
     grace_days: 3,
+    ...pricingOf(sub),
     updated_at: new Date().toISOString(),
   };
   // Don't let an unfinished/old Stripe subscription overwrite a membership that still gives access.
@@ -143,6 +146,15 @@ export async function syncSubscription(subscriptionId: string): Promise<string> 
     if (curSub && curSub.created > sub.created) return "kept-newer";
   }
   await upsert("entitlements", "household_id", next);
+  // Emails we owe the family (sent by the send-emails function; each only once).
+  if (sub.cancel_at_period_end === true && GRANTS.has(sub.status)) {
+    await queueNotice(household, "cancellation_confirmed", `cancel:${sub.id}:${sub.cancel_at ?? periodEnd}`, {
+      access_until: new Date(periodEnd * 1000).toISOString(), trialing: sub.status === "trialing",
+    });
+  }
+  if (sub.status === "canceled" && !sub.cancel_at_period_end) {
+    await queueNotice(household, "membership_ended", `ended:${sub.id}`, { ended_at: new Date(periodEnd * 1000).toISOString() });
+  }
   let trial = "";
   if (sub.status === "trialing") {
     trial = " " + (await enforceOneTrial(sub, household));
@@ -195,6 +207,13 @@ async function enforceOneTrial(sub: any, household: string): Promise<string> {
   });
   if (outcome !== "granted") {
     await stripe(`/subscriptions/${sub.id}`, { method: "POST", params: { trial_end: "now", proration_behavior: "none" } });
+  } else {
+    const p = pricingOf(sub);
+    await queueNotice(household, "trial_started", `trial_started:${sub.id}`, {
+      trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
+      amount_minor: p.discounted_price_minor ?? p.price_minor, then_minor: p.price_minor, discount_label: p.discount_label,
+      discount_ends_at: p.discount_ends_at, interval: sub.items?.data?.[0]?.price?.recurring?.interval ?? "month",
+    });
   }
   return `trial:${outcome}`;
 }
@@ -205,7 +224,9 @@ export async function queueTrialEndingNotice(subscriptionId: string): Promise<st
   const household = await householdForCustomer(sub.customer, sub.metadata?.household_id);
   if (!household || sub.status !== "trialing" || !sub.trial_end) return "no-notice";
   const price = sub.items?.data?.[0]?.price;
-  await asServer("member_notices", {
+  const p = pricingOf(sub);
+  const discounted = p.discounted_price_minor != null && (!p.discount_ends_at || new Date(p.discount_ends_at).getTime() > sub.trial_end * 1000);
+  await asServer("member_notices?on_conflict=dedupe_key", {
     method: "POST",
     headers: { Prefer: "return=minimal,resolution=ignore-duplicates" },
     body: JSON.stringify({
@@ -215,7 +236,10 @@ export async function queueTrialEndingNotice(subscriptionId: string): Promise<st
       due_at: new Date().toISOString(),
       detail: {
         trial_end: new Date(sub.trial_end * 1000).toISOString(),
-        amount_minor: price?.unit_amount ?? null,
+        amount_minor: discounted ? p.discounted_price_minor : (price?.unit_amount ?? null),
+        then_minor: price?.unit_amount ?? null,
+        discount_label: discounted ? p.discount_label : null,
+        discount_ends_at: discounted ? p.discount_ends_at : null,
         currency: price?.currency ?? "aud",
         interval: price?.recurring?.interval ?? null,
         cancel_at_period_end: sub.cancel_at_period_end === true,
@@ -262,6 +286,19 @@ export async function syncInvoice(invoiceId: string): Promise<string> {
     updated_at: new Date().toISOString(),
   });
   if (inv.status === "paid" && paid > 0) await attributeReferral(household, subObj?.metadata?.referral_code, inv.id);
+  const subIdForNotice = subObj?.id ?? (typeof inv.subscription === "string" ? inv.subscription : undefined);
+  if (inv.status === "paid" && paid > 0 && subIdForNotice) {
+    await queueNotice(household, "membership_started", `membership_started:${subIdForNotice}`, {
+      amount_minor: paid, interval: line?.price?.recurring?.interval ?? "month",
+      period_end: line?.period?.end ? new Date(line.period.end * 1000).toISOString() : null,
+    });
+  }
+  if (inv.status === "open" && (inv.attempt_count ?? 0) > 0 && paid === 0) {
+    await queueNotice(household, "payment_failed", `payment_failed:${inv.id}`, {
+      amount_minor: inv.amount_due ?? 0,
+      next_attempt: inv.next_payment_attempt ? new Date(inv.next_payment_attempt * 1000).toISOString() : null,
+    });
+  }
   // Keep the membership in step with this invoice (newer Stripe event payloads no longer carry the subscription id).
   const subId = subObj?.id ?? (typeof inv.subscription === "string" ? inv.subscription : undefined);
   return `invoice:${inv.status}` + (subId ? ` ${await syncSubscription(subId)}` : "");
@@ -318,4 +355,34 @@ export async function syncCharge(chargeId: string): Promise<string> {
     });
   }
   return `refunds:${ch.refunds?.data?.length ?? 0}`;
+}
+
+/* ---------------- what the family pays (price + any promo) ---------------- */
+
+/** Current price and discount of a subscription, for the account page and emails. */
+export function pricingOf(sub: any) {
+  const price = sub.items?.data?.[0]?.price;
+  const unit: number | null = price?.unit_amount ?? null;
+  const d = sub.discount ?? (Array.isArray(sub.discounts) && typeof sub.discounts[0] === "object" ? sub.discounts[0] : null);
+  const coupon = d?.coupon;
+  let discounted: number | null = null;
+  if (coupon && unit != null) {
+    discounted = coupon.amount_off ? Math.max(0, unit - coupon.amount_off) : coupon.percent_off ? Math.round(unit * (1 - coupon.percent_off / 100)) : null;
+  }
+  return {
+    plan_key: price?.lookup_key ?? null,
+    price_minor: unit,
+    discounted_price_minor: discounted,
+    discount_label: coupon ? (coupon.name ?? null) : null,
+    discount_ends_at: d?.end ? new Date(d.end * 1000).toISOString() : null,
+  };
+}
+
+/** Queue an email for the family. The dedupe key makes every notice happen at most once. */
+export async function queueNotice(household: string, kind: string, dedupeKey: string, detail: Record<string, unknown>) {
+  await asServer("member_notices?on_conflict=dedupe_key", {
+    method: "POST",
+    headers: { Prefer: "return=minimal,resolution=ignore-duplicates" },
+    body: JSON.stringify({ household_id: household, kind, dedupe_key: dedupeKey, due_at: new Date().toISOString(), detail }),
+  });
 }
