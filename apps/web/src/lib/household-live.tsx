@@ -301,8 +301,16 @@ export function LiveHouseholdProvider({ children }: { children: React.ReactNode 
         return data;
       },
       closeAccount: async () => {
-        const { error } = await db.rpc("delete_my_account");
-        if (error) return fail(error);
+        // Server function: cancels the Stripe subscription first, then closes the account.
+        const { data, error } = await db.functions.invoke("close-account", { body: { confirm: "CLOSE" } });
+        if (error || !data?.ok) {
+          let message = "Couldn’t close the account. Please try again.";
+          try {
+            const ctx = (error as { context?: Response } | null)?.context;
+            message = (ctx ? (await ctx.json())?.error : data?.error) ?? message;
+          } catch { /* keep default */ }
+          return { ok: false, message };
+        }
         if (uid) writeDevice(uid, {});
         await db.auth.signOut({ scope: "local" });
         return ok;
