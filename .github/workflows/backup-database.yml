@@ -1,0 +1,74 @@
+# Nightly database backup — an encrypted copy of the whole database (structure + data).
+# The free Supabase plan has no downloadable backups, so we make our own; production should ALSO use
+# Supabase's own daily backups / point-in-time recovery (paid plan) — see docs/PRODUCTION_SETUP.md.
+#
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL     the "Session pooler" connection string from Supabase (Connect button), with the DB password in it
+#   BACKUP_PASSPHRASE   a long random passphrase; store it in your password manager — without it a backup can't be opened
+# The file is encrypted (AES-256) BEFORE it is stored, and kept for 14 days as a workflow artifact.
+# Restore steps: docs/RESTORE.md
+name: Database backup
+
+on:
+  schedule:
+    - cron: "37 16 * * *"   # 03:37 Sydney (summer time)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Check secrets are set
+        run: |
+          if [ -z "$DB_URL" ] || [ -z "$PASSPHRASE" ]; then
+            echo "::warning::SUPABASE_DB_URL and/or BACKUP_PASSPHRASE not set — no backup taken."
+            echo "### Backup skipped: add SUPABASE_DB_URL and BACKUP_PASSPHRASE secrets" >> "$GITHUB_STEP_SUMMARY"
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          elif [ ${#PASSPHRASE} -lt 20 ]; then
+            echo "::error::BACKUP_PASSPHRASE must be at least 20 characters"; exit 1
+          fi
+      - name: Install PostgreSQL 17 client
+        if: env.SKIP != '1'
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17 >/dev/null
+      - name: Dump and encrypt
+        if: env.SKIP != '1'
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%Y%m%dT%H%MZ)
+          # Our schemas + auth users (needed to restore sign-ins). Supabase-managed internals are recreated by Supabase.
+          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" --format=custom --no-owner --no-privileges \
+            --schema=public --schema=private --schema=tests --schema=auth --schema=cron \
+            --file=db.dump
+          SIZE=$(stat -c%s db.dump)
+          [ "$SIZE" -gt 10000 ] || { echo "::error::Backup suspiciously small ($SIZE bytes)"; exit 1; }
+          /usr/lib/postgresql/17/bin/pg_restore --list db.dump > contents.txt
+          TABLES=$(grep -c " TABLE DATA " contents.txt || true)
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$PASSPHRASE" --symmetric --cipher-algo AES256 \
+              --output "gfit-db-$STAMP.dump.gpg" db.dump
+          shred -u db.dump
+          sha256sum "gfit-db-$STAMP.dump.gpg" > "gfit-db-$STAMP.sha256"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          {
+            echo "### Backup taken $STAMP"
+            echo "- Encrypted size: $(stat -c%s gfit-db-$STAMP.dump.gpg) bytes"
+            echo "- Tables with data: $TABLES"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: env.SKIP != '1'
+        with:
+          name: gfit-db-${{ env.STAMP }}
+          path: |
+            gfit-db-*.dump.gpg
+            gfit-db-*.sha256
+          retention-days: 14
+          if-no-files-found: error
