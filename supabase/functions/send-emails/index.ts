@@ -16,7 +16,7 @@ const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const FROM = Deno.env.get("EMAIL_FROM") ?? "";
 const ALLOW = new Set((Deno.env.get("EMAIL_TEST_ALLOWLIST") ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean));
 const ctx = {
-  brandName: Deno.env.get("BRAND_NAME") ?? "PROJECT_NAME",
+  brandName: Deno.env.get("BRAND_NAME") ?? "G.Fit",
   siteUrl: Deno.env.get("SITE_URL") ?? "https://g-fit-liard.vercel.app",
   supportEmail: Deno.env.get("SUPPORT_EMAIL") || undefined,
 };

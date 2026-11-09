@@ -35,3 +35,11 @@ describe("member emails", () => {
     expect(() => renderNotice("marketing_blast", {}, ctx)).toThrow();
   });
 });
+
+describe("email layout", () => {
+  it("has no runs of blank lines and links the welcome button to workouts", () => {
+    const e = renderNotice("membership_started", { amount_minor: 499 }, ctx);
+    expect(e.text).not.toMatch(/\n\n\n/);
+    expect(e.text).toContain("Start a workout: https://example.test/watch/");
+  });
+});

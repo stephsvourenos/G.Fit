@@ -1155,12 +1155,10 @@ function pricePhrase(d) {
 function build(subject, parts, ctx) {
   const account2 = `${ctx.siteUrl.replace(/\/$/, "")}/watch/account/`;
   const footer = `You\u2019re receiving this because you have a ${ctx.brandName} family membership. Manage or cancel anytime: ${account2}` + (ctx.supportEmail ? ` \xB7 Questions? ${ctx.supportEmail}` : "");
-  const text = [
-    ...parts.map((x) => x.p ? x.p : x.button ? `${x.button[0]}: ${x.button[1]}` : ""),
-    "",
-    "\u2014",
-    footer
-  ].join("\n\n");
+  const text = `${parts.map((x) => x.p ? x.p : x.button ? `${x.button[0]}: ${x.button[1]}` : "").join("\n\n")}
+
+\u2014
+${footer}`;
   const html = `<!doctype html><html><body style="margin:0;background:#f4f5f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0e1116"><div style="max-width:560px;margin:0 auto;padding:24px"><div style="background:#fff;border-radius:16px;padding:28px"><div style="font-weight:700;font-size:18px;margin-bottom:16px">${esc(ctx.brandName)}</div>` + parts.map(
     (x) => x.p ? `<p style="font-size:16px;line-height:1.5;margin:0 0 14px">${esc(x.p)}</p>` : x.button ? `<p style="margin:20px 0"><a href="${esc(x.button[1])}" style="background:#0e1116;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600;display:inline-block">${esc(x.button[0])}</a></p>` : ""
   ).join("") + `</div><p style="font-size:12px;color:#6b7280;line-height:1.5;padding:12px 8px">${esc(footer)}</p></div></body></html>`;
@@ -1191,7 +1189,7 @@ function renderNotice(kind, detail2, ctx) {
         { p: "Hi there," },
         { p: `Thanks for joining! We\u2019ve received your payment of ${aud(detail2.amount_minor)} (GST included) and your family membership is active.` },
         { p: `It renews every ${per(detail2.interval)}${detail2.period_end ? ` (next on ${day(detail2.period_end)})` : ""} until you cancel. Your tax invoice is available in your family account under \u201CManage membership\u201D.` },
-        { button: ["Start a workout", account2] }
+        { button: ["Start a workout", `${ctx.siteUrl.replace(/\/$/, "")}/watch/`] }
       ], ctx);
     case "payment_failed":
       return build(`Action needed: your ${b} payment didn\u2019t go through`, [

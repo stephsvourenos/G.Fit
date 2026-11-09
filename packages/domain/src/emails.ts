@@ -52,12 +52,7 @@ function build(subject: string, parts: Part[], ctx: EmailContext): RenderedEmail
   const account = `${ctx.siteUrl.replace(/\/$/, "")}/watch/account/`;
   const footer = `You’re receiving this because you have a ${ctx.brandName} family membership. Manage or cancel anytime: ${account}` +
     (ctx.supportEmail ? ` · Questions? ${ctx.supportEmail}` : "");
-  const text = [
-    ...parts.map((x) => (x.p ? x.p : x.button ? `${x.button[0]}: ${x.button[1]}` : "")),
-    "",
-    "—",
-    footer,
-  ].join("\n\n");
+  const text = `${parts.map((x) => (x.p ? x.p : x.button ? `${x.button[0]}: ${x.button[1]}` : "")).join("\n\n")}\n\n—\n${footer}`;
   const html =
     `<!doctype html><html><body style="margin:0;background:#f4f5f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0e1116">` +
     `<div style="max-width:560px;margin:0 auto;padding:24px"><div style="background:#fff;border-radius:16px;padding:28px">` +
@@ -104,7 +99,7 @@ export function renderNotice(kind: string, detail: Record<string, unknown>, ctx:
         { p: "Hi there," },
         { p: `Thanks for joining! We’ve received your payment of ${aud(detail.amount_minor)} (GST included) and your family membership is active.` },
         { p: `It renews every ${per(detail.interval)}${detail.period_end ? ` (next on ${day(detail.period_end)})` : ""} until you cancel. Your tax invoice is available in your family account under “Manage membership”.` },
-        { button: ["Start a workout", account] },
+        { button: ["Start a workout", `${ctx.siteUrl.replace(/\/$/, "")}/watch/`] },
       ], ctx);
     case "payment_failed":
       return build(`Action needed: your ${b} payment didn’t go through`, [
