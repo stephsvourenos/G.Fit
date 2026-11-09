@@ -1,6 +1,6 @@
 # BUILD_STATUS
 
-_Last updated: 7 Nov 2026 — Phase 5 (bank payment files, reconciliation, finance reports) built and tested_
+_Last updated: 9 Nov 2026 — Phase 6 started: founder & promo pricing, member emails, phone preview_
 
 ## Done (Phase 0)
 - Monorepo (pnpm workspaces): `apps/web` (Next.js 16), `apps/mobile` (Expo SDK 58), `packages/domain`,
@@ -22,7 +22,7 @@ _Last updated: 7 Nov 2026 — Phase 5 (bank payment files, reconciliation, finan
 | # | Test | Status |
 |---|---|---|
 | 1 | Sign-up → pay → webhook → 3 profiles → PIN | Domain parts tested (PIN gate, webhook); end-to-end needs Supabase + Stripe (Ph 1, 3) |
-| 2 | Grandfathered A$9.99 / A$14.99 / A$4.99×3 | ✅ unit-tested (Stripe-equivalent model); live Stripe in Ph 3 |
+| 2 | Grandfathered A$9.99 / A$14.99 / promo | ✅ live Stripe test mode (Ph 6): founder A$9.99 every month; LAUNCH499 = 6 × A$4.99 then A$14.99; LAUNCH999 = 6 × A$9.99 then A$14.99 (8-month test clocks) |
 | 3 | Referral vs royalty go to different creators | ✅ unit-tested |
 | 4 | Household-balanced pool + refunds; skip-to-end earns nothing | ✅ unit-tested + browser-checked |
 | 5 | 3 contracts, pause, cancelled, annual, refund — cent-exact & reproducible | ✅ unit-tested (fingerprint) |
@@ -238,3 +238,31 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
   file through the bank's checker (docs/MONTHLY_CLOSE.md → One-off setup)
 - Note: a creator called "TEST · bank file check" (status ended) and its cancelled A$123.45 batch remain in the dev
   database — payout records are permanent by design
+
+## Phase 6 — Launch readiness (in progress, 9 Nov 2026)
+- **Founder pricing:** Stripe price `gfit_family_monthly_founder_aud_v1` (A$9.99/month). Families enter **FOUNDER** on the
+  Join page (monthly only). Admin → Plans, pricing & promotions: open/close, closing date, maximum founders, change the
+  code (audited). Founders keep the price for as long as the membership continues — Stripe never moves an existing
+  subscription to a new price
+- **Promo codes:** LAUNCH499 (A$4.99/month × 6) and LAUNCH999 (A$9.99/month × 6), then A$14.99; monthly plan, new
+  members only. Codes are validated and applied by our server (Stripe's own code box is off), so a monthly promo can't be
+  used on annual. Admins can create codes (price, months, max uses, expiry) and switch them off
+- **Account page** shows what the family pays ("A$4.99 until 9 May 2027, then A$14.99"; founder wording)
+- **Proof (Stripe test clocks, fast-forwarded 8 months):** LAUNCH499 with trial = A$0, 6 × A$4.99, then A$14.99;
+  LAUNCH999 = 6 × A$9.99, then A$14.99; founder = A$9.99 every month. Checkout pages carry the right price/discount and
+  terms text. Code checks: wrong plan, unknown, malformed, switched-off codes all refused
+- **Member emails:** trial started, trial ending (required reminder: date, amount incl. promo, how to cancel), welcome,
+  payment failed, cancellation confirmed, membership ended. Words in `packages/domain/src/emails.ts` (unit-tested).
+  Queued once each by billing events; `send-emails` runs every 10 minutes. **No email service connected yet** —
+  emails are written and kept ("logged"), readable in Admin → Member emails. Connecting one (Resend free tier) needs
+  the domain → launch step. Outside production only allow-listed addresses would ever be emailed
+- **Phone preview:** Expo project `gfit` (owner stephanies88s-team) linked to GitHub; `.eas/workflows/preview.yml`
+  publishes on every push to main; opens in Expo Go (runtime `exposdk:58.0.0`, channel `preview`)
+- **Working name G.Fit** set in config (one value); "Suitable for all ages" / age-range wording on workouts
+- **Tests:** domain 75/75; RLS 32/32; journey 19/19; finance 38/38; browser checks of pricing, emails and Join (offer
+  codes incl. founder refused on annual)
+- Test accounts added: e2e-newfamily@gfit.test (monthly, LAUNCH499, cancelling) and e2e-newfamily2@gfit.test (no
+  membership) — same test password. Test promo TESTONLY799 created and switched off
+- **Still to do in Phase 6:** separate production environment, error alerts, backups + restore drill, security
+  review, launch checklist, lawyer-review drafts (privacy, terms, creator contract), connect email service (after
+  domain), app-store billing decision and store accounts (when ready to submit)
