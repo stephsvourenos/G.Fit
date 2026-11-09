@@ -263,6 +263,15 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
   codes incl. founder refused on annual)
 - Test accounts added: e2e-newfamily@gfit.test (monthly, LAUNCH499, cancelling) and e2e-newfamily2@gfit.test (no
   membership) — same test password. Test promo TESTONLY799 created and switched off
+- **Launch readiness (9 Nov):** rebuild-from-scratch rehearsal passed on a temporary project (26 migrations, all
+  suites green; fixed scheduled jobs' hard-coded address and a test that relied on hand-loaded data); nightly
+  encrypted backup workflow + RESTORE.md; System health (crash capture from web/app/server, hourly health check,
+  admin page, alert emails); security headers + SECURITY_REVIEW.md; PRODUCTION_SETUP.md; LAUNCH_CHECKLIST.md; legal
+  drafts doc (privacy policy, membership terms, creator agreement + lawyer/accountant questions)
+- **Bug found in review — closing an account:** didn't cancel Stripe and deleted financial records. Fix on branch
+  `fix-close-account` (migration `20261109150000`, function `close-account`), merged once the DB change is approved
+- **Backlog from the legal review:** email before a promo price ends (subscription rules from 1 July 2027); email
+  existing members [30] days before any price change
 - **Still to do in Phase 6:** separate production environment, error alerts, backups + restore drill, security
   review, launch checklist, lawyer-review drafts (privacy, terms, creator contract), connect email service (after
   domain), app-store billing decision and store accounts (when ready to submit)
