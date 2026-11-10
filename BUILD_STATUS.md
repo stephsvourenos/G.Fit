@@ -268,8 +268,9 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
   encrypted backup workflow + RESTORE.md; System health (crash capture from web/app/server, hourly health check,
   admin page, alert emails); security headers + SECURITY_REVIEW.md; PRODUCTION_SETUP.md; LAUNCH_CHECKLIST.md; legal
   drafts doc (privacy policy, membership terms, creator agreement + lawyer/accountant questions)
-- **Bug found in review — closing an account:** didn't cancel Stripe and deleted financial records. Fix on branch
-  `fix-close-account` (migration `20261109150000`, function `close-account`), merged once the DB change is approved
+- **Bug found in review — closing an account:** didn't cancel Stripe and deleted financial records. **Fixed and live
+  10 Nov** (migration `20261109150000`, function `close-account`): account-closing checks 8/8; end-to-end test passed.
+  Crash-report daily cap live. All suites green: RLS 32/32, journey 19/19, finance 38/38, account closing 8/8
 - **Backlog from the legal review:** email before a promo price ends (subscription rules from 1 July 2027); email
   existing members [30] days before any price change
 - **Still to do in Phase 6:** separate production environment, error alerts, backups + restore drill, security
