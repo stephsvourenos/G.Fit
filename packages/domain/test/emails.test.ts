@@ -24,7 +24,7 @@ describe("member emails", () => {
     expect(e.text).not.toContain("we’ll charge");
   });
   it("escapes HTML and renders every kind", () => {
-    for (const k of ["trial_started", "trial_ending", "membership_started", "payment_failed", "cancellation_confirmed", "membership_ended"]) {
+    for (const k of ["trial_started", "trial_ending", "membership_started", "payment_failed", "cancellation_confirmed", "membership_ended", "promo_ending", "price_change"]) {
       const e = renderNotice(k, { amount_minor: 1499 }, { ...ctx, brandName: "<b>X</b>" });
       expect(e.html).toContain("&lt;b&gt;X&lt;/b&gt;");
       expect(e.html).not.toContain("<b>X</b>");
@@ -41,5 +41,22 @@ describe("email layout", () => {
     const e = renderNotice("membership_started", { amount_minor: 499 }, ctx);
     expect(e.text).not.toMatch(/\n\n\n/);
     expect(e.text).toContain("Start a workout: https://example.test/watch/");
+  });
+});
+
+describe("price notices", () => {
+  it("promo ending states the old price, the new price, the date and how to cancel", () => {
+    const e = renderNotice("promo_ending", { amount_minor: 499, then_minor: 1499, discount_ends_at: "2027-05-09T02:00:00Z", next_charge: "2027-05-16T02:00:00Z" }, ctx);
+    expect(e.text).toContain("A$4.99");
+    expect(e.text).toContain("A$14.99");
+    expect(e.text).toContain("16 May 2027");
+    expect(e.text).toMatch(/cancel before that date/);
+  });
+  it("price change gives the effective date and both prices", () => {
+    const e = renderNotice("price_change", { interval: "month", old_minor: 1499, new_minor: 1699, effective: "2027-03-01T00:00:00Z" }, ctx);
+    expect(e.subject).toContain("change to your");
+    expect(e.text).toContain("A$16.99 a month");
+    expect(e.text).toContain("instead of A$14.99");
+    expect(e.text).toContain("1 March 2027");
   });
 });

@@ -11,6 +11,7 @@ interface Notice {
 const KIND: Record<string, string> = {
   trial_started: "Trial started", trial_ending: "Trial ending reminder", membership_started: "Welcome / membership started",
   payment_failed: "Payment failed", cancellation_confirmed: "Cancellation confirmed", membership_ended: "Membership ended",
+  promo_ending: "Offer price ending", price_change: "Price change notice",
 };
 const TONE: Record<string, "green" | "amber" | "grey" | "red" | "blue"> = { sent: "green", logged: "blue", queued: "amber", failed: "red", skipped: "grey" };
 const STATUS: Record<string, string> = { sent: "Sent", logged: "Kept (not sent)", queued: "Waiting", failed: "Failed", skipped: "Skipped" };

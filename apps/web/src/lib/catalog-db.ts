@@ -30,11 +30,16 @@ export interface WorkoutRow {
   video_status: VideoStatus;
   video_error: string | null;
   video_duration_sec: number | null;
+  caption_status: CaptionStatus;
+  mux_playback_id: string | null;
 }
 
 export type VideoStatus = "none" | "waiting" | "processing" | "ready" | "errored";
-export interface VideoInfo { status: VideoStatus; error: string | null; durationSec: number | null }
-export const rowToVideo = (r: WorkoutRow): VideoInfo => ({ status: r.video_status, error: r.video_error, durationSec: r.video_duration_sec });
+export type CaptionStatus = "none" | "generating" | "ready" | "errored";
+export interface VideoInfo { status: VideoStatus; error: string | null; durationSec: number | null; captionStatus?: CaptionStatus; captions?: boolean }
+export const rowToVideo = (r: WorkoutRow): VideoInfo => ({
+  status: r.video_status, error: r.video_error, durationSec: r.video_duration_sec, captionStatus: r.caption_status, captions: r.captions,
+});
 
 export const rowToWorkout = (r: WorkoutRow): Workout => ({
   id: r.id,

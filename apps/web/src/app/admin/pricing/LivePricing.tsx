@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Badge, Kpi, Table } from "@/components/AdminShell";
 import { useStaffSession } from "@/lib/staff";
 import { friendlyError, supabase, supabaseConfigured } from "@/lib/supabase";
+import { PriceChange } from "./PriceChange";
 
 interface Data {
   prices: { id: string; lookup_key: string; nickname: string | null; amount_minor: number; interval: string }[];
@@ -138,6 +139,7 @@ export function LivePricing() {
               </div>
             </form>
           )}
+          <PriceChange isAdmin={isAdmin} prices={Object.fromEntries(d.prices.map((p) => [p.lookup_key, p.amount_minor]))} />
         </>
       )}
     </>

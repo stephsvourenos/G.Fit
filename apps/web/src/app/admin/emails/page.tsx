@@ -6,7 +6,7 @@ export default function EmailsPage() {
     <>
       <PageHeader
         title="Member emails"
-        sub="Every email the system owes a family — trial started, trial ending reminder, welcome, payment failed, cancellation — with exactly what it said and when it went."
+        sub="Every email the system owes a family — trial started, trial ending reminder, welcome, payment failed, cancellation, offer price ending, price change — with exactly what it said and when it went."
       />
       <LiveEmails />
     </>

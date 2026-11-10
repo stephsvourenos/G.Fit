@@ -2,8 +2,9 @@ import { formatMoney } from "@app/domain";
 import { creators, demoFinance } from "@app/mock-data";
 import { Badge, Kpi, PageHeader, Table } from "@/components/AdminShell";
 import { creatorBalances } from "@/lib/finance-demo";
+import { LiveLedger } from "./LiveLedger";
 
-export default function LedgerPage() {
+function DemoLedger() {
   const f = demoFinance();
   const balances = creatorBalances();
   const total = (k: keyof (typeof balances)[number]) => balances.reduce((a, b) => a + (typeof b[k] === "number" ? (b[k] as number) : 0), 0);
@@ -11,7 +12,6 @@ export default function LedgerPage() {
   const sample = f.ledger.filter((e) => e.creatorId === "cr-pip").slice(-12).reverse();
   return (
     <>
-      <PageHeader title="Creator liability ledger" sub={`Append-only: ${f.ledger.length.toLocaleString()} entries. Nothing is ever edited or deleted — refunds and corrections are new, linked adjusting entries.`} />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi label="Royalties accrued" value={formatMoney(total("royalties"))} />
         <Kpi label="Referral accrued" value={formatMoney(total("referrals"))} />
@@ -61,6 +61,15 @@ export default function LedgerPage() {
           </tr>
         ))}
       </Table>
+    </>
+  );
+}
+
+export default function LedgerPage() {
+  return (
+    <>
+      <PageHeader title="Creator liability ledger" sub="What we owe creators: every finalised royalty, referral commission and adjustment, and which have been paid." />
+      <LiveLedger demo={<DemoLedger />} />
     </>
   );
 }

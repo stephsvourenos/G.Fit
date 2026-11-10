@@ -12,7 +12,9 @@ export type NoticeKind =
   | "membership_started"
   | "payment_failed"
   | "cancellation_confirmed"
-  | "membership_ended";
+  | "membership_ended"
+  | "promo_ending"
+  | "price_change";
 
 export interface EmailContext {
   brandName: string;
@@ -122,6 +124,22 @@ export function renderNotice(kind: string, detail: Record<string, unknown>, ctx:
         { p: "Hi there," },
         { p: `Your family membership ended on ${day(detail.ended_at)} and videos are now paused. Your family’s profiles are kept, so you can pick up where you left off.` },
         { button: ["Rejoin", account] },
+      ], ctx);
+    case "promo_ending":
+      return build(`Your ${b} offer price is ending`, [
+        { p: "Hi there," },
+        { p: `Your offer price of ${aud(detail.amount_minor)} a month ${typeof detail.discount_ends_at === "string" ? `ended on ${day(detail.discount_ends_at)}` : "has ended"}.` },
+        { p: `Your next payment, on ${day(detail.next_charge)}, will be the normal price of ${aud(detail.then_minor)} (GST included), and it renews monthly until you cancel.` },
+        { p: "Happy to keep moving? You don’t need to do anything. If you’d rather stop, cancel before that date in your family account and you won’t be charged again." },
+        { button: ["Manage membership", account] },
+      ], ctx);
+    case "price_change":
+      return build(`A change to your ${b} price`, [
+        { p: "Hi there," },
+        { p: `From ${day(detail.effective)}, the ${detail.interval === "year" ? "annual" : "monthly"} membership will cost ${aud(detail.new_minor)} a ${per(detail.interval)} (GST included), instead of ${aud(detail.old_minor)}.` },
+        { p: `The new price applies from your first payment on or after that date. ${typeof detail.reason === "string" && detail.reason ? detail.reason : ""}`.trim() },
+        { p: "If you’d rather not continue, you can cancel any time before then in your family account and you won’t be charged the new price." },
+        { button: ["Manage membership", account] },
       ], ctx);
     default:
       throw new Error(`No email template for "${kind}"`);

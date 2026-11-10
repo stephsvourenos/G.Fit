@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { NewCreator } from "./NewCreator";
 import { formatMoney } from "@app/domain";
 import { Badge, Table } from "@/components/AdminShell";
 import { friendlyError, supabase, supabaseConfigured } from "@/lib/supabase";
@@ -108,6 +109,7 @@ export function LiveContracts({ demo }: { demo: ReactNode }) {
   return (
     <>
       {msg && <p role="alert" className={`mb-4 rounded-xl px-4 py-2.5 text-sm ${msg.tone === "ok" ? "bg-mint/15 text-[#0f6a4a]" : "bg-coral/10 text-[#b8361a]"}`}>{msg.text}</p>}
+      <NewCreator onDone={(text) => { setMsg({ tone: "ok", text }); load().then(setData); }} />
       <Table head={["Creator", "Contract", "Licence", "Referral terms", "Payout", "Payee", "Balance (final)", ""]}>
         {data.creators.map((c) => {
           const k = latest(c.id);

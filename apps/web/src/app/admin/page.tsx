@@ -3,8 +3,9 @@ import { formatMoney, sumMinor } from "@app/domain";
 import { demoFinance, households, workouts } from "@app/mock-data";
 import { Badge, Kpi, PageHeader } from "@/components/AdminShell";
 import { creatorBalances } from "@/lib/finance-demo";
+import { LiveOverview } from "./LiveOverview";
 
-export default function Overview() {
+function DemoOverview() {
   const f = demoFinance();
   const oct = f.snapshots.at(-1)!;
   const active = households.filter((h) => h.status !== "canceled");
@@ -15,7 +16,6 @@ export default function Overview() {
 
   return (
     <>
-      <PageHeader title="Good morning 👋" sub="Everything below is generated from sample data by the real royalty, referral and payout engines." />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="Active households" value={active.length.toLocaleString()} hint={`${households.filter((h) => h.status === "past_due").length} payment issues`} />
         <Kpi label="Net receipts (Oct, provisional)" value={formatMoney(oct.netReceiptsMinor)} hint="after GST & card fees" />
@@ -54,6 +54,15 @@ export default function Overview() {
           </ul>
         </section>
       </div>
+    </>
+  );
+}
+
+export default function Overview() {
+  return (
+    <>
+      <PageHeader title="Overview" sub="Today’s numbers and anything that needs someone." />
+      <LiveOverview demo={<DemoOverview />} />
     </>
   );
 }

@@ -83,7 +83,7 @@ export function sendHeartbeat(sessionId: string, beat: HeartbeatPayload): void {
 
 /* ---------- admin ---------- */
 
-export async function videoAdmin(action: "create-upload" | "use-sample" | "refresh", workoutId: string) {
+export async function videoAdmin(action: "create-upload" | "use-sample" | "refresh" | "generate-captions", workoutId: string) {
   const { data, error } = await supabase().functions.invoke("video-admin", {
     body: { action, workout_id: workoutId, origin: window.location.origin },
   });

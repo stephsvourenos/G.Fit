@@ -129,6 +129,7 @@ export function canPublish(w: Workout, instructor: Instructor | undefined): Publ
   }
   if (w.rights.territories.length === 0) problems.push("No licensed territories");
   if (w.ageBands.length === 0) problems.push("No age eligibility set");
+  if (!w.captions) problems.push("No captions yet (they’re made automatically after the video uploads)");
   if (w.state !== "approved" && w.state !== "scheduled") {
     problems.push(`Must be approved before publishing (currently ${w.state})`);
   }

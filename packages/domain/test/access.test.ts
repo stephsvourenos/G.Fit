@@ -77,6 +77,10 @@ describe("content publishing gate", () => {
     expect(r.problems).toContain("Music rights not cleared");
     expect(r.problems).toContain("Guardian consent missing for a minor instructor");
   });
+  it("blocks publishing without captions", () => {
+    const w = { ...workout, captions: false, state: "approved" as const, rights: { ...workout.rights, guardianConsent: true as const } };
+    expect(canPublish(w, minor).problems.some((p) => p.startsWith("No captions"))).toBe(true);
+  });
   it("allows publishing when every check is complete", () => {
     const w = { ...workout, state: "approved" as const, rights: { ...workout.rights, guardianConsent: true as const } };
     expect(canPublish(w, minor).ok).toBe(true);

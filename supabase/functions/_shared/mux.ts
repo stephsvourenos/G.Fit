@@ -40,12 +40,24 @@ export async function syncWorkoutVideo(w: WorkoutVideo): Promise<Record<string, 
   if (a.status === 404) return save(w.id, { mux_asset_id: null, mux_playback_id: null, video_status: "none" });
   const signed = (a.data.playback_ids ?? []).find((p: { policy: string }) => p.policy === "signed");
   if (a.data.status === "ready" && signed) {
-    return save(w.id, { mux_asset_id: assetId, mux_playback_id: signed.id, video_status: "ready", video_duration_sec: a.data.duration ?? null, video_error: null });
+    return save(w.id, {
+      mux_asset_id: assetId, mux_playback_id: signed.id, video_status: "ready", video_duration_sec: a.data.duration ?? null, video_error: null,
+      ...captionState(a.data.tracks ?? []),
+    });
   }
   if (a.data.status === "errored") {
     return save(w.id, { mux_asset_id: assetId, video_status: "errored", video_error: (a.data.errors?.messages ?? []).join(" ") || "Processing failed" });
   }
   return save(w.id, { mux_asset_id: assetId, video_status: "processing" });
+}
+
+/** Captions: a text track that's ready means the workout is captioned. (Never switches captions off by itself.) */
+function captionState(tracks: { type: string; status?: string }[]): Record<string, unknown> {
+  const text = tracks.filter((t) => t.type === "text");
+  if (text.some((t) => t.status === "ready")) return { caption_status: "ready", captions: true };
+  if (text.some((t) => t.status === "preparing")) return { caption_status: "generating" };
+  if (text.length && text.every((t) => t.status === "errored")) return { caption_status: "errored" };
+  return { caption_status: "none" };
 }
 
 async function save(id: string, patch: Record<string, unknown>) {

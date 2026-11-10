@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/AdminShell";
-import type { VideoInfo, VideoStatus } from "@/lib/catalog-db";
+import type { CaptionStatus, VideoInfo, VideoStatus } from "@/lib/catalog-db";
 import { putFile, videoAdmin } from "@/lib/video";
 
 const LABEL: Record<VideoStatus, [string, "grey" | "amber" | "blue" | "green" | "red"]> = {
@@ -34,17 +34,22 @@ export function VideoPanel({ workoutId, title, v, onChange }: { workoutId: strin
 
   async function refresh() {
     const r = await videoAdmin("refresh", workoutId);
-    onChange({ status: (r.video_status as VideoStatus) ?? status, error: (r.video_error as string) ?? null, durationSec: (r.video_duration_sec as number) ?? v?.durationSec ?? null });
+    onChange({
+      status: (r.video_status as VideoStatus) ?? status, error: (r.video_error as string) ?? null,
+      durationSec: (r.video_duration_sec as number) ?? v?.durationSec ?? null,
+      captionStatus: (r.caption_status as CaptionStatus) ?? v?.captionStatus, captions: (r.captions as boolean) ?? v?.captions,
+    });
   }
 
-  // While Mux is working, check every 8 seconds.
+  const captionStatus = v?.captionStatus ?? "none";
+  // While Mux is working (video or captions), check every 8 seconds.
   useEffect(() => {
-    if (status !== "processing" && status !== "waiting") return;
+    if (status !== "processing" && status !== "waiting" && captionStatus !== "generating") return;
     if (busy) return;
     const t = window.setInterval(() => void refresh().catch(() => undefined), 8000);
     return () => window.clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, busy]);
+  }, [status, busy, captionStatus]);
 
   async function run(label: string, fn: () => Promise<void>) {
     setBusy(label);
@@ -68,6 +73,24 @@ export function VideoPanel({ workoutId, title, v, onChange }: { workoutId: strin
       {status === "ready" && v?.durationSec ? <p className="mt-1 text-xs text-ink/60">Length {mmss(v.durationSec)} · plays only through signed, expiring links</p> : null}
       {status === "errored" && <p className="mt-1 text-xs text-[#b8361a]">{v?.error ?? "Mux couldn’t process this file."} Try uploading it again.</p>}
       {status === "processing" && <p className="mt-1 text-xs text-ink/60">Mux is preparing the video for every screen size. This usually takes under a minute per minute of video.</p>}
+      {status === "ready" && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+          <span className="font-semibold">Captions:</span>
+          {v?.captions || captionStatus === "ready" ? <Badge tone="green">ready</Badge>
+            : captionStatus === "generating" ? <Badge tone="blue">being made…</Badge>
+            : captionStatus === "errored" ? <Badge tone="red">failed</Badge>
+            : <Badge tone="amber">none</Badge>}
+          {!v?.captions && captionStatus !== "generating" && captionStatus !== "ready" && (
+            <button disabled={!!busy} onClick={() => void run("captions", async () => {
+              const r = await videoAdmin("generate-captions", workoutId);
+              onChange({ ...(v ?? { status, error: null, durationSec: null }), captionStatus: (r.caption_status as CaptionStatus) ?? "generating" });
+            })} className="rounded-lg px-2.5 py-1 font-semibold ring-1 ring-ink/20 disabled:opacity-50">
+              {busy === "captions" ? "Starting…" : "Make captions"}
+            </button>
+          )}
+          <span className="text-ink/50">English captions are made automatically from the sound — watch once to check them.</span>
+        </div>
+      )}
       {pct !== undefined && (
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-ink/10" aria-label="Upload progress">
           <div className="h-full bg-coral transition-all" style={{ width: `${pct}%` }} />
@@ -85,7 +108,7 @@ export function VideoPanel({ workoutId, title, v, onChange }: { workoutId: strin
           if (!file) return;
           void run("upload", async () => {
             const { uploadUrl } = await videoAdmin("create-upload", workoutId);
-            onChange({ status: "waiting", error: null, durationSec: null });
+            onChange({ status: "waiting", error: null, durationSec: null, captionStatus: "none", captions: false });
             setPct(0);
             await putFile(uploadUrl!, file, setPct);
             await refresh();

@@ -20,7 +20,7 @@ const csp = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "media-src 'self' blob: https://*.mux.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.mux.com https://*.litix.io",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.mux.com https://*.litix.io https://storage.googleapis.com",
   "worker-src 'self' blob:",
   "frame-src 'none'",
   "frame-ancestors 'none'",

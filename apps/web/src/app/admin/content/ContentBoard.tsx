@@ -6,6 +6,7 @@ import { instructors as seedInstructors, workouts as seed } from "@app/mock-data
 import { Badge, Table } from "@/components/AdminShell";
 import { loadCatalogForAdmin, rowToVideo, rowToWorkout, workoutPatch, type VideoInfo, type WorkoutRow } from "@/lib/catalog-db";
 import { VideoPanel, VideoBadge } from "./VideoPanel";
+import { WorkoutEditor } from "./WorkoutEditor";
 import { friendlyError, supabase, supabaseConfigured } from "@/lib/supabase";
 
 const NEXT: Partial<Record<ContentState, ContentState>> = {
@@ -31,6 +32,17 @@ export function ContentBoard() {
   const [error, setError] = useState<string>();
   const [busyId, setBusyId] = useState<string>();
   const [videos, setVideos] = useState<Record<string, VideoInfo>>({});
+  const [editing, setEditing] = useState<string | "new" | null>(null);
+
+  const saved = (w: Workout, v: VideoInfo) => {
+    setItems((list) => (list.some((x) => x.id === w.id) ? list.map((x) => (x.id === w.id ? w : x)) : [w, ...list]));
+    setVideos((all) => ({ ...all, [w.id]: v }));
+    setLog((l) => [`${new Date().toLocaleTimeString()} — ${editing === "new" ? "created draft" : "updated"} “${w.title}”`, ...l]);
+    setEditing(null);
+    setOpen(w.id);
+  };
+  /** Video must be uploaded and ready before going live (the database checks this too). */
+  const videoProblem = (id: string) => (live && videos[id]?.status !== "ready" ? ["Video not uploaded and ready yet"] : []);
 
   useEffect(() => {
     if (!live) return;
@@ -68,6 +80,15 @@ export function ContentBoard() {
   return (
     <>
       {error && <p role="alert" className="mb-4 rounded-xl bg-coral/10 px-4 py-2.5 text-sm text-[#b8361a]">{error}</p>}
+      {live && (
+        <div className="mb-4">
+          {editing === "new" ? (
+            <WorkoutEditor instructors={instructors} onSaved={saved} onCancel={() => setEditing(null)} />
+          ) : (
+            <button onClick={() => setEditing("new")} className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper">+ New workout</button>
+          )}
+        </div>
+      )}
       <div className="mb-4 flex flex-wrap gap-2">
         {(["all", ...CONTENT_STATES] as const).map((s) => (
           <button key={s} onClick={() => setFilter(s)} className={`rounded-full px-3 py-1.5 text-sm ${filter === s ? "bg-ink text-paper" : "bg-white ring-1 ring-ink/10"}`}>
@@ -81,7 +102,7 @@ export function ContentBoard() {
           if (!ins) return null;
           const check = canPublish({ ...w, state: w.state === "published" ? "approved" : w.state }, ins);
           const next = NEXT[w.state];
-          const blocked = next === "published" && !canPublish(w, ins).ok;
+          const blocked = next === "published" && (!canPublish(w, ins).ok || videoProblem(w.id).length > 0);
           return (
             <Fragment key={w.id}>
               <tr className="align-top">
@@ -98,7 +119,7 @@ export function ContentBoard() {
                   {next && (
                     <button
                       disabled={blocked || busyId === w.id}
-                      title={blocked ? canPublish(w, ins).problems.join("\n") : ""}
+                      title={blocked ? [...canPublish(w, ins).problems, ...videoProblem(w.id)].join("\n") : ""}
                       onClick={() => update(w.id, { state: next, publishedAt: next === "published" ? new Date().toISOString().slice(0, 10) : w.publishedAt }, `${w.title}: ${w.state} → ${next}`)}
                       className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-paper disabled:cursor-not-allowed disabled:bg-ink/20"
                     >
@@ -110,6 +131,11 @@ export function ContentBoard() {
               {open === w.id && (
                 <tr>
                   <td colSpan={live ? 7 : 6} className="bg-ink/[0.02] px-4 py-4">
+                    {live && (editing === w.id ? (
+                      <div className="mb-4"><WorkoutEditor workout={w} instructors={instructors} onSaved={saved} onCancel={() => setEditing(null)} /></div>
+                    ) : (
+                      <button onClick={() => setEditing(w.id)} className="mb-3 rounded-lg px-3 py-1.5 text-xs font-semibold ring-1 ring-ink/20">Edit details</button>
+                    ))}
                     <div className="grid gap-4 text-sm sm:grid-cols-2">
                       <div>
                         <div className="font-semibold">Rights & safety checklist</div>
@@ -134,11 +160,19 @@ export function ContentBoard() {
                       <div>
                         <div className="font-semibold">Publishing blockers</div>
                         <ul className="mt-2 list-disc pl-5 text-ink/70">
-                          {canPublish({ ...w, state: "approved" }, ins).problems.map((p) => <li key={p}>{p}</li>)}
-                          {canPublish({ ...w, state: "approved" }, ins).ok && <li>None — ready to publish once approved.</li>}
+                          {[...canPublish({ ...w, state: "approved" }, ins).problems, ...videoProblem(w.id)].map((p) => <li key={p}>{p}</li>)}
+                          {canPublish({ ...w, state: "approved" }, ins).ok && videoProblem(w.id).length === 0 && <li>None — ready to publish once approved.</li>}
                         </ul>
                         {live ? (
-                          <VideoPanel workoutId={w.id} title={w.title} v={videos[w.id]} onChange={(v) => setVideos((all) => ({ ...all, [w.id]: v }))} />
+                          <VideoPanel
+                            workoutId={w.id}
+                            title={w.title}
+                            v={videos[w.id]}
+                            onChange={(v) => {
+                              setVideos((all) => ({ ...all, [w.id]: v }));
+                              if (v.captions !== undefined) setItems((list) => list.map((x) => (x.id === w.id ? { ...x, captions: v.captions! } : x)));
+                            }}
+                          />
                         ) : (
                           <p className="mt-3 text-xs text-ink/50">Video uploads work once the app is connected to Mux.</p>
                         )}
