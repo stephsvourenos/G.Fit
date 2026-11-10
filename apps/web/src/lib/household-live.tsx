@@ -251,6 +251,16 @@ export function LiveHouseholdProvider({ children }: { children: React.ReactNode 
         if (status === "needs-profiles") setStatus("ready");
         return ok;
       },
+      updateProfile: async (id, patch) => {
+        const row: Record<string, unknown> = {};
+        if (patch.avatar) { row.avatar_emoji = patch.avatar.emoji; row.avatar_colour = patch.avatar.colour; }
+        if (patch.nickname !== undefined) row.nickname = patch.nickname.trim();
+        const { data, error } = await db.from("profiles").update(row).eq("id", id).eq("household_id", householdId ?? "").select("*").single();
+        if (error) return fail(error);
+        const next = toProfile(data as ProfileRow);
+        setProfiles((list) => list.map((p) => (p.id === id ? next : p)));
+        return ok;
+      },
       removeProfile: async (id) => {
         // Deleting a profile also deletes its activity (database cascade).
         const { error } = await db.from("profiles").delete().eq("id", id);

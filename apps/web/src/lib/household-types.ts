@@ -27,6 +27,8 @@ export interface HouseholdState {
   lockPin: () => void;
   addProfile: (p: Omit<Profile, "id" | "householdId">) => Promise<PinResult>;
   removeProfile: (id: string) => Promise<PinResult>;
+  /** Change a profile's picture (and optionally nickname). */
+  updateProfile: (id: string, patch: { avatar?: Profile["avatar"]; nickname?: string }) => Promise<PinResult>;
   progress: Record<string, number>;
   setProgress: (workoutId: string, sec: number) => void;
   favourites: string[];

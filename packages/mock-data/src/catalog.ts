@@ -101,8 +101,8 @@ export const demoHouseholdId = "hh-demo";
 export const demoProfiles: Profile[] = [
   { id: "pr-sam", householdId: demoHouseholdId, nickname: "Sam", avatar: { emoji: "🦉", colour: "#2E6BFF" }, ageBand: "adult", interests: ["pilates", "mobility", "strength"], pinProtected: true },
   { id: "pr-jo", householdId: demoHouseholdId, nickname: "Jo", avatar: { emoji: "🐺", colour: "#0E1116" }, ageBand: "adult", interests: ["soccer", "strength"], pinProtected: true },
-  { id: "pr-ollie", householdId: demoHouseholdId, nickname: "Ollie", avatar: { emoji: "🦊", colour: "#FF5A36" }, ageBand: "13-15", interests: ["soccer", "challenges", "strength"], pinProtected: false },
-  { id: "pr-ruby", householdId: demoHouseholdId, nickname: "Ruby", avatar: { emoji: "🐬", colour: "#21C08B" }, ageBand: "9-12", interests: ["dance", "move-and-play"], pinProtected: false, maxIntensity: "moderate" },
+  { id: "pr-ollie", householdId: demoHouseholdId, nickname: "Ollie", avatar: { emoji: "🦊", colour: "#E0177A" }, ageBand: "13-15", interests: ["soccer", "challenges", "strength"], pinProtected: false },
+  { id: "pr-ruby", householdId: demoHouseholdId, nickname: "Ruby", avatar: { emoji: "🐬", colour: "#4CC9F0" }, ageBand: "9-12", interests: ["dance", "move-and-play"], pinProtected: false, maxIntensity: "moderate" },
   { id: "pr-leo", householdId: demoHouseholdId, nickname: "Leo", avatar: { emoji: "🐣", colour: "#FFC23D" }, ageBand: "under-6", interests: ["move-and-play"], pinProtected: false },
 ];
 

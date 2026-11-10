@@ -13,3 +13,4 @@ export * from "./monthEnd";
 export * from "./home";
 export * from "./aba";
 export * from "./emails";
+export * from "./avatars";

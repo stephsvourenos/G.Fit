@@ -1,5 +1,6 @@
 import { Link, router } from "expo-router";
 import { FlatList, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Avatar } from "../ui/Avatar";
 import { buildHomeRows, CATEGORY_LABEL, formatDuration } from "@app/domain";
 import { instructors, workouts } from "@app/mock-data";
 import { useHousehold } from "@/lib/household";
@@ -23,7 +24,7 @@ export default function Home() {
       <ScrollView>
         <View style={s.top}>
           <Text style={s.hi}>Hi {h.active.nickname} 👋</Text>
-          <Pressable onPress={() => router.replace("/")} style={s.switch}><Text style={{ fontSize: 22 }}>{h.active.avatar.emoji}</Text></Pressable>
+          <Pressable onPress={() => router.replace("/")} style={s.switch}><Avatar p={h.active} size={44} /></Pressable>
         </View>
         {hero && (
           <Pressable onPress={() => router.push(`/workout/${hero.id}`)} style={s.hero}>

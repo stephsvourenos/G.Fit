@@ -9,12 +9,12 @@ export const brand = {
   defaultCurrency: "AUD" as const,
   defaultCountry: "AU" as const,
   colours: {
-    ink: "#0E1116",
-    paper: "#F7F4EE",
-    accent: "#FF5A36",
-    accent2: "#2E6BFF",
-    mint: "#21C08B",
-    sun: "#FFC23D",
+    ink: "#15131C",
+    paper: "#F4F2F8",
+    accent: "#E0177A",
+    accent2: "#4CC9F0",
+    mint: "#3FD08F",
+    sun: "#FFB703",
   },
 } as const;
 

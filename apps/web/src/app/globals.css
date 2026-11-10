@@ -1,23 +1,30 @@
 @import "tailwindcss";
 @import "@fontsource-variable/bricolage-grotesque";
-@import "@fontsource-variable/manrope";
+@import "@fontsource/atkinson-hyperlegible/400.css";
+@import "@fontsource/atkinson-hyperlegible/700.css";
 
 @theme {
+  /* Arvo palette (10 Nov 2026): eucalypt dark, gum magenta, wattle cyan. Token names kept so every screen follows. */
   --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif;
 
-  --color-ink: #0e1116;
-  --color-ink-2: #171b22;
-  --color-ink-3: #232935;
-  --color-line: #2c3340;
-  --color-paper: #f7f4ee;
-  --color-paper-2: #efe9df;
-  --color-muted: #9aa3b2;
-  --color-coral: #ff5a36;
-  --color-coral-2: #ff7b5c;
-  --color-sun: #ffc23d;
-  --color-mint: #21c08b;
-  --color-sky: #2e6bff;
+  --color-ink: #15131c;      /* eucalypt */
+  --color-ink-2: #211e2b;
+  --color-ink-3: #2e2a3b;
+  --color-line: #3a3548;
+  --color-paper: #f4f2f8;    /* on-dark text / light surfaces */
+  --color-paper-2: #e9e5f0;
+  --color-page: #f6f4f9;     /* admin & light pages */
+  --color-muted: #a49fb2;
+  --color-coral: #e0177a;    /* gum — primary action */
+  --color-coral-2: #ff5aa8;  /* gum, lighter — accents/text on dark */
+  --color-gum-hover: #c00f68;
+  --color-gum-tint: #fce0ee;
+  --color-wattle: #4cc9f0;   /* wattle — second accent on dark */
+  --color-wattle-tint: #dcf4fc;
+  --color-sky: #1b86b0;      /* wattle, darker — links/info readable on white */
+  --color-sun: #ffb703;
+  --color-mint: #3fd08f;
 }
 
 html {

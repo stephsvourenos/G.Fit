@@ -233,7 +233,7 @@ function SimulatedPlayer({ id }: { id: string }) {
             step={1}
             value={pos}
             onChange={(e) => seekTo(Number(e.target.value))}
-            className="w-full accent-[#ff5a36]"
+            className="w-full accent-[#e0177a]"
             aria-label="Seek"
           />
           <div className="flex items-center gap-3">

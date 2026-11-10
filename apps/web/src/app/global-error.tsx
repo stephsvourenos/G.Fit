@@ -8,7 +8,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   useEffect(() => reportError(`Page crashed: ${error.message}${error.digest ? ` (${error.digest})` : ""}`), [error]);
   return (
     <html lang="en">
-      <body style={{ fontFamily: "system-ui, sans-serif", background: "#0E1116", color: "#F7F4EE", display: "grid", placeItems: "center", minHeight: "100vh", margin: 0 }}>
+      <body style={{ fontFamily: "system-ui, sans-serif", background: "#15131C", color: "#F4F2F8", display: "grid", placeItems: "center", minHeight: "100vh", margin: 0 }}>
         <div style={{ maxWidth: 420, padding: 24, textAlign: "center" }}>
           <h1 style={{ fontSize: 28 }}>Something went wrong</h1>
           <p style={{ opacity: 0.7 }}>We’ve been told about it. Please try again.</p>

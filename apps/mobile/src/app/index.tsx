@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { AGE_BAND_LABEL, type Profile } from "@app/domain";
+import { Avatar } from "../ui/Avatar";
 import { brand } from "@app/config";
 import { useHousehold } from "@/lib/household";
 import { PinModal } from "@/ui/PinModal";
@@ -32,7 +33,7 @@ export default function ProfilePicker() {
         <View style={s.grid}>
           {h.profiles.map((p) => (
             <Pressable key={p.id} onPress={() => choose(p)} style={({ pressed }) => [s.tile, pressed && { transform: [{ scale: 0.96 }] }]} accessibilityRole="button" accessibilityLabel={`Open ${p.nickname}`}>
-              <View style={[s.avatar, { backgroundColor: p.avatar.colour }]}><Text style={{ fontSize: 44 }}>{p.avatar.emoji}</Text></View>
+              <Avatar p={p} size={104} />
               <Text style={s.name}>{p.nickname}</Text>
               <Text style={s.meta}>{p.pinProtected ? "🔒 " : ""}{AGE_BAND_LABEL[p.ageBand]}</Text>
             </Pressable>

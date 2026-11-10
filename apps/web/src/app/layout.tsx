@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: brand.tagline,
 };
 
-export const viewport: Viewport = { themeColor: "#0e1116" };
+export const viewport: Viewport = { themeColor: "#15131c" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

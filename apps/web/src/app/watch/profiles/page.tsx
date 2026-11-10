@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { AGE_BAND_LABEL, AGE_BANDS, CATEGORIES, CATEGORY_LABEL, isChildBand, type AgeBand, type CategoryId, type Intensity } from "@app/domain";
 import { Avatar } from "@/components/Avatar";
+import { AvatarPicker } from "@/components/AvatarPicker";
 import { ParentGate } from "@/components/ParentGate";
 import { useHousehold } from "@/lib/household";
 
 const EMOJIS = ["🦊", "🐬", "🐣", "🦉", "🐯", "🐼", "🦄", "🐸", "🐙", "🦖"];
-const COLOURS = ["#FF5A36", "#21C08B", "#FFC23D", "#2E6BFF", "#8B5CF6", "#EC4899"];
+const COLOURS = ["#E0177A", "#4CC9F0", "#FFB703", "#3FD08F", "#7209B7", "#FB8500"];
 const MAX_PROFILES = 6;
 
 export default function ProfilesPage() {
@@ -16,20 +17,24 @@ export default function ProfilesPage() {
   const [adding, setAdding] = useState(false);
   const [nickname, setNickname] = useState("");
   const [ageBand, setAgeBand] = useState<AgeBand>("6-8");
-  const [emoji, setEmoji] = useState(EMOJIS[0]!);
+  const [emoji, setEmoji] = useState("@run1");
   const [colour, setColour] = useState(COLOURS[0]!);
   const [interests, setInterests] = useState<CategoryId[]>([]);
   const [maxIntensity, setMaxIntensity] = useState<Intensity | "">("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editPic, setEditPic] = useState("");
+  const [editColour, setEditColour] = useState(COLOURS[0]!);
 
   return (
     <ParentGate title="Manage profiles">
       <p className="mt-2 text-muted">Up to {MAX_PROFILES} profiles. Children’s profiles hold only a nickname, age band and interests — no email, photo or birthday.</p>
       <ul className="mt-6 divide-y divide-white/5 rounded-2xl bg-ink-2 ring-1 ring-white/5">
         {h.profiles.map((p) => (
-          <li key={p.id} className="flex items-center gap-4 p-4">
+          <li key={p.id} className="p-4">
+            <div className="flex items-center gap-4">
             <Avatar p={p} size={48} />
             <div className="flex-1">
               <div className="font-semibold">{p.nickname}</div>
@@ -44,7 +49,34 @@ export default function ProfilesPage() {
                 <button onClick={() => setConfirmDelete(null)} className="px-2 text-muted">Cancel</button>
               </div>
             ) : (
-              <button onClick={() => setConfirmDelete(p.id)} className="text-sm text-muted hover:text-coral-2" disabled={h.profiles.length <= 1}>Remove</button>
+              <div className="flex items-center gap-4 text-sm">
+                <button onClick={() => { setEditing(editing === p.id ? null : p.id); setEditPic(p.avatar.emoji); setEditColour(p.avatar.colour); }} className="font-semibold text-wattle hover:underline">Change picture</button>
+                <button onClick={() => setConfirmDelete(p.id)} className="text-muted hover:text-coral-2" disabled={h.profiles.length <= 1}>Remove</button>
+              </div>
+            )}
+            </div>
+            {editing === p.id && (
+              <div className="mt-4 space-y-4 rounded-2xl bg-ink-3/60 p-4">
+                <div className="flex items-center gap-3">
+                  <Avatar p={{ nickname: p.nickname, avatar: { emoji: editPic, colour: editColour } }} size={64} />
+                  <span className="text-sm text-muted">Pick a new picture for {p.nickname}.</span>
+                </div>
+                <PicturePicker value={editPic} colour={editColour} onPick={setEditPic} onColour={setEditColour} />
+                <div className="flex gap-3">
+                  <button
+                    disabled={saving}
+                    onClick={async () => {
+                      setSaving(true);
+                      const r = await h.updateProfile(p.id, { avatar: { emoji: editPic, colour: editColour } });
+                      setSaving(false);
+                      if (!r.ok) return setError(r.message);
+                      setEditing(null);
+                    }}
+                    className="rounded-full bg-coral px-5 py-2 font-semibold text-white disabled:opacity-60"
+                  >{saving ? "Saving…" : "Save picture"}</button>
+                  <button onClick={() => setEditing(null)} className="px-3 text-muted">Cancel</button>
+                </div>
+              </div>
             )}
           </li>
         ))}
@@ -79,8 +111,9 @@ export default function ProfilesPage() {
               <input required maxLength={20} value={nickname} onChange={(e) => setNickname(e.target.value)} className="mt-1 w-full rounded-xl bg-ink-3 px-3 py-2 font-normal" placeholder="e.g. Mia (no surnames)" />
             </label>
           </div>
-          <div className="flex flex-wrap gap-2">{EMOJIS.map((x) => <button type="button" key={x} onClick={() => setEmoji(x)} className={`h-10 w-10 rounded-xl text-xl ${emoji === x ? "bg-white/20 ring-2 ring-sun" : "bg-ink-3"}`}>{x}</button>)}</div>
-          <div className="flex gap-2">{COLOURS.map((c) => <button type="button" key={c} onClick={() => setColour(c)} aria-label={c} className={`h-8 w-8 rounded-full ${colour === c ? "ring-2 ring-paper ring-offset-2 ring-offset-ink-2" : ""}`} style={{ background: c }} />)}</div>
+          <fieldset><legend className="mb-3 text-sm font-semibold">Choose a picture</legend>
+            <PicturePicker value={emoji} colour={colour} onPick={setEmoji} onColour={setColour} />
+          </fieldset>
           <label className="block text-sm font-semibold">Age band
             <select value={ageBand} onChange={(e) => setAgeBand(e.target.value as AgeBand)} className="mt-1 w-full rounded-xl bg-ink-3 px-3 py-2 font-normal">
               {AGE_BANDS.map((b) => <option key={b} value={b}>{AGE_BAND_LABEL[b]}</option>)}
@@ -106,5 +139,22 @@ export default function ProfilesPage() {
         </form>
       )}
     </ParentGate>
+  );
+}
+
+/** The illustrated library, plus the original emoji tiles (with a colour) for anyone who prefers them. */
+function PicturePicker({ value, colour, onPick, onColour }: { value: string; colour: string; onPick: (v: string) => void; onColour: (c: string) => void }) {
+  const isEmoji = !value.startsWith("@");
+  return (
+    <div className="space-y-5">
+      <AvatarPicker value={value} colour={colour} onPick={onPick} />
+      <section aria-label="Classic">
+        <h3 className="mb-2 text-sm font-semibold text-paper/80">Classic</h3>
+        <div className="flex flex-wrap gap-2">{EMOJIS.map((x) => <button type="button" key={x} aria-pressed={value === x} onClick={() => onPick(x)} className={`h-11 w-11 rounded-xl text-xl ${value === x ? "bg-white/20 ring-2 ring-sun" : "bg-ink-3"}`}>{x}</button>)}</div>
+        {isEmoji && (
+          <div className="mt-3 flex gap-2">{COLOURS.map((c) => <button type="button" key={c} onClick={() => onColour(c)} aria-label={`Tile colour ${c}`} className={`h-8 w-8 rounded-full ${colour === c ? "ring-2 ring-paper ring-offset-2 ring-offset-ink-2" : ""}`} style={{ background: c }} />)}</div>
+        )}
+      </section>
+    </div>
   );
 }

@@ -138,7 +138,7 @@ export function VideoPlayer({ w, playbackId, tokens, sessionId, instructorName }
             playbackId={playbackId}
             tokens={tokens}
             streamType="on-demand"
-            accentColor="#FF5A36"
+            accentColor="#E0177A"
             title={w.title}
             metadata={{ video_title: w.title, video_id: w.id }}
             disableTracking

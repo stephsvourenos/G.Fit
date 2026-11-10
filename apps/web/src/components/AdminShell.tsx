@@ -39,11 +39,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, [staff.state, path, router]);
 
   if (staff.state === "loading" || staff.state === "signed-out") {
-    return <div className="grid flex-1 place-items-center bg-[#f4f5f7] text-ink/60">Checking your access…</div>;
+    return <div className="grid flex-1 place-items-center bg-page text-ink/60">Checking your access…</div>;
   }
   if (staff.state === "no-access" || staff.roles.length === 0) {
     return (
-      <div className="grid flex-1 place-items-center bg-[#f4f5f7] p-6 text-center text-ink">
+      <div className="grid flex-1 place-items-center bg-page p-6 text-center text-ink">
         <div className="max-w-md">
           <h1 className="font-display text-3xl">No admin access</h1>
           <p className="mt-2 text-ink/65">You’re signed in as {staff.email}, which isn’t a staff account. Ask an admin to add you, or sign in with a different account.</p>
@@ -59,7 +59,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   // Compare with a trailing slash either way (Next may report "/admin/x" or "/admin/x/").
   const sample = supabaseConfigured && !LIVE_PAGES.includes(`${path.replace(/\/$/, "")}/`);
   return (
-    <div className="flex flex-1 flex-col bg-[#f4f5f7] text-ink lg:flex-row">
+    <div className="flex flex-1 flex-col bg-page text-ink lg:flex-row">
       <aside className="border-b border-ink/10 bg-white lg:min-h-full lg:w-64 lg:border-b-0 lg:border-r">
         <div className="flex items-center justify-between px-5 py-4">
           <Link href="/admin/" className="font-display text-lg font-semibold">{brand.name} <span className="text-coral">Admin</span></Link>

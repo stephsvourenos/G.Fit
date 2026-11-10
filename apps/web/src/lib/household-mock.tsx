@@ -93,6 +93,10 @@ export function MockHouseholdProvider({ children }: { children: React.ReactNode 
         setProfiles((list) => [...list, { ...p, id: `pr-${Math.random().toString(36).slice(2, 8)}`, householdId: demoHouseholdId }]);
         return { ok: true };
       },
+      updateProfile: async (id, patch) => {
+        setProfiles((list) => list.map((p) => (p.id === id ? { ...p, ...(patch.avatar ? { avatar: patch.avatar } : {}), ...(patch.nickname !== undefined ? { nickname: patch.nickname.trim() } : {}) } : p)));
+        return { ok: true };
+      },
       removeProfile: async (id) => {
         setProfiles((list) => list.filter((p) => p.id !== id));
         // Deleting a child profile deletes its activity too.
