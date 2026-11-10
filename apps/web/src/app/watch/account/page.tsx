@@ -137,6 +137,16 @@ export default function AccountPage() {
               undone. If you’d like a copy of your data, use “Show my household
               data” first.
             </p>
+            {active && (
+              <p className="mt-2 font-semibold">
+                Your membership ends straight away and won’t be charged again. There’s no refund for the time left.
+                If you only want to stop paying, cancel your membership under “Manage membership” instead and keep
+                watching until the end of the period.
+              </p>
+            )}
+            <p className="mt-2 text-muted">
+              We keep payment records (with no names or profiles attached) for 7 years because tax law requires it.
+            </p>
             <div className="mt-3 flex gap-3">
               <button
                 onClick={async () => {
