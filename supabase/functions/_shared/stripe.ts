@@ -380,6 +380,9 @@ export function pricingOf(sub: any) {
 
 /** Queue an email for the family. The dedupe key makes every notice happen at most once. */
 export async function queueNotice(household: string, kind: string, dedupeKey: string, detail: Record<string, unknown>) {
+  // Closed accounts get no emails (their login and address are gone).
+  const closed = (await asServer(`households?id=eq.${household}&select=closed_at`)).data?.[0]?.closed_at;
+  if (closed) return;
   await asServer("member_notices?on_conflict=dedupe_key", {
     method: "POST",
     headers: { Prefer: "return=minimal,resolution=ignore-duplicates" },
