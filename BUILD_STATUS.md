@@ -1,6 +1,20 @@
 # BUILD_STATUS
 
-_Last updated: 9 Nov 2026 — Phase 6 started: founder & promo pricing, member emails, phone preview_
+_Last updated: 10 Nov 2026 — new colours, profile picture library, public website redesign_
+
+## Latest (10 Nov 2026)
+- **Colour scheme** switched to the reference palette across website, app, admin and phone app: dark ink #15131C,
+  gum pink #E0177A (actions), sky #4CC9F0, sunshine #FFB703, mint #3FD08F. Fonts: Bricolage Grotesque (headings),
+  Atkinson Hyperlegible (body; designed for easy reading).
+- **Profile pictures:** 58 original illustrations in four rows: Movers (24 sporty characters with varied skin
+  tones and hair), Animal athletes (8), Gear (18 fitness icons) and On the move (8 animated). The original emoji
+  are kept as "Classic". Families can now change an existing profile's picture. Animation is switched off for
+  anyone whose device asks for reduced motion; the phone app shows still versions. No real people (image rights,
+  children's service). 5 new automated checks (83 domain tests pass).
+- **Public website** redesigned: an interactive "Who's moving today?" hero (tap a family member to see their
+  age-appropriate shelf), ages, three steps, parent safety, prices with the 7-day trial, teaching on G.Fit, FAQ.
+  Developer links (admin demo, sample referral) removed from the public menu and footer.
+
 
 ## Done (Phase 0)
 - Monorepo (pnpm workspaces): `apps/web` (Next.js 16), `apps/mobile` (Expo SDK 58), `packages/domain`,
