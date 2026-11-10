@@ -6,7 +6,7 @@ export default function ContentPage() {
     <>
       <PageHeader
         title="Content approval & scheduling"
-        sub="Only admins can move a workout through the workflow. Publishing is blocked until the licence, music rights, safety review and (for minor instructors) guardian consent are complete."
+        sub="Create workouts, upload their videos (captions are made automatically) and move them through review. Publishing is blocked until the video and captions are ready and the licence, music rights, safety review and (for child coaches) guardian consent are complete."
       />
       <ContentBoard />
     </>

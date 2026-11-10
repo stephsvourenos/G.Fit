@@ -271,8 +271,17 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
 - **Bug found in review — closing an account:** didn't cancel Stripe and deleted financial records. **Fixed and live
   10 Nov** (migration `20261109150000`, function `close-account`): account-closing checks 8/8; end-to-end test passed.
   Crash-report daily cap live. All suites green: RLS 32/32, journey 19/19, finance 38/38, account closing 8/8
-- **Backlog from the legal review:** email before a promo price ends (subscription rules from 1 July 2027); email
-  existing members [30] days before any price change
+- **Content pipeline (10 Nov):** Content approval → **New workout** / **Edit details** (always created as drafts);
+  video upload straight to Mux with **automatic English captions** (also "Make captions" for older videos); publishing
+  now also needs the video ready and captions (database rule + admin UI). Creators & contracts → **New creator**
+  (creator + coach profile + portal login by email). "Adding workouts" guide replaces the old placeholder. CSP allows
+  the Mux upload host. End-to-end: draft → sample video → captions ready in seconds → publish refused without rights →
+  published → archived (test workout "TEST Captions check", archived). Captions added to the 5 existing test videos
+- **Price emails (10 Nov):** "offer price ending" (daily, ≤10 days before the first full-price payment) and
+  **announce a price change** (Plans & pricing; ≥30 days' notice; founders excluded; emails every family on the plan)
+- **Admin Overview and Creator liability ledger now live** — no admin page shows sample figures any more
+- Tests: domain 78/78; RLS 33/33 (adds: can't publish without video + captions); journey 19/19; finance 38/38;
+  account closing 8/8; browser checks of all new screens with no security-policy violations
 - **Still to do in Phase 6:** separate production environment, error alerts, backups + restore drill, security
   review, launch checklist, lawyer-review drafts (privacy, terms, creator contract), connect email service (after
   domain), app-store billing decision and store accounts (when ready to submit)
