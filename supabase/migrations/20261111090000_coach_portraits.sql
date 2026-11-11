@@ -67,9 +67,13 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('coach-portraits', 'coach-portraits', true, 2097152, array['image/jpeg', 'image/png', 'image/webp'])
 on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
+drop policy if exists coach_portraits_staff_select on storage.objects;
 drop policy if exists coach_portraits_staff_insert on storage.objects;
 drop policy if exists coach_portraits_staff_update on storage.objects;
 drop policy if exists coach_portraits_staff_delete on storage.objects;
+-- Staff need to list their uploads to replace or delete them (viewing by families uses the public address).
+create policy coach_portraits_staff_select on storage.objects for select to authenticated
+  using (bucket_id = 'coach-portraits' and private.has_staff_role('{admin,content_editor}'));
 create policy coach_portraits_staff_insert on storage.objects for insert to authenticated
   with check (bucket_id = 'coach-portraits' and private.has_staff_role('{admin,content_editor}'));
 create policy coach_portraits_staff_update on storage.objects for update to authenticated
@@ -113,9 +117,11 @@ begin
   update public.profiles set avatar_instructor_id = ins_ok where id = pid;
   select count(*) into n from public.profiles where id = pid and avatar_instructor_id = ins_ok;
                                                                         if n = 1 then passed := passed + 1; else failed := failed || ' [family can pick consenting coach]'; end if;
-  begin update public.instructors set portrait_consent_at = null where id = ins_ok; failed := failed || ' [members cannot change coach consent]';
-  exception when others then passed := passed + 1; end;
+  -- A member's attempt is ignored (row security: no rows match) or refused; either way consent must be unchanged.
+  begin update public.instructors set portrait_consent_at = null where id = ins_ok; exception when others then null; end;
   perform set_config('role', me, true);
+  select count(*) into n from public.instructors where id = ins_ok and portrait_consent_at is not null;
+                                                                        if n = 1 then passed := passed + 1; else failed := failed || ' [members cannot change coach consent]'; end if;
 
   -- Withdrawal removes the picture everywhere, keeps the fallback, and is audited.
   update public.instructors set portrait_consent_at = null, portrait_consent_ref = null where id = ins_ok;

@@ -1,6 +1,14 @@
 # BUILD_STATUS
 
-_Last updated: 10 Nov 2026 — new colours, profile picture library, public website redesign_
+_Last updated: 11 Nov 2026 — coach photos as profile pictures_
+
+## Latest (11 Nov 2026)
+- **Coach photos as profile pictures:** families see a "Coaches" row first in the picture picker (web and phone).
+  Staff add a photo under Admin → Creators, and must record where the coach's signed consent is (creator
+  agreement clause 10, optional). Adults only. "Remove photo" takes it off every family's profile at once (they
+  go back to their previous picture), deletes the file and is audit-logged. 9 database checks pass; tested end to
+  end in a browser with an illustrated stand-in photo, which was removed afterwards.
+
 
 ## Latest (10 Nov 2026)
 - **Colour scheme** switched to the reference palette across website, app, admin and phone app: dark ink #15131C,
