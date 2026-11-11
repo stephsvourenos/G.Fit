@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
 import { SvgXml } from "react-native-svg";
 import { avatarById, stillSvg, type Profile } from "@app/domain";
 
@@ -8,6 +8,9 @@ export function Avatar({ p, size }: { p: Pick<Profile, "avatar">; size: number }
   const pic = avatarById(p.avatar.emoji);
   const xml = useMemo(() => (pic ? stillSvg(pic.svg) : undefined), [pic]);
   const radius = size * 0.28;
+  if (p.avatar.coach) {
+    return <Image source={{ uri: p.avatar.coach.imageUrl }} style={{ width: size, height: size, borderRadius: radius, backgroundColor: "#2E2A3B" }} accessibilityIgnoresInvertColors />;
+  }
   if (xml) {
     return (
       <View style={{ width: size, height: size, borderRadius: radius, overflow: "hidden" }} accessibilityElementsHidden importantForAccessibility="no">

@@ -1,8 +1,8 @@
 import type { Session } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import type { AgeBand, CategoryId, HouseholdEntitlement, Intensity, Profile } from "@app/domain";
+import { coachPortraitUrl, type AgeBand, type CategoryId, type HouseholdEntitlement, type Intensity, type Profile } from "@app/domain";
 import { DEMO_PIN, demoHouseholdId, demoProfiles, demoProgress } from "@app/mock-data";
-import { friendlyError, supabase, supabaseConfigured } from "./supabase";
+import { friendlyError, supabase, SUPABASE_URL, supabaseConfigured } from "./supabase";
 
 /**
  * Household state for the phone app. With Supabase configured it uses the real
@@ -105,13 +105,21 @@ interface ProfileRow {
   interests: string[];
   pin_protected: boolean;
   max_intensity: Intensity | null;
+  coach?: { id: string; display_name: string; portrait_path: string | null } | null;
 }
+
+/** Profiles plus the coach portrait they picked (if any). */
+const PROFILE_COLS = "*, coach:instructors!avatar_instructor_id(id, display_name, portrait_path)";
 
 const toProfile = (r: ProfileRow): Profile => ({
   id: r.id,
   householdId: r.household_id,
   nickname: r.nickname,
-  avatar: { emoji: r.avatar_emoji, colour: r.avatar_colour },
+  avatar: {
+    emoji: r.avatar_emoji,
+    colour: r.avatar_colour,
+    ...(r.coach?.portrait_path ? { coach: { id: r.coach.id, name: r.coach.display_name, imageUrl: coachPortraitUrl(SUPABASE_URL ?? "", r.coach.portrait_path) } } : {}),
+  },
   ageBand: r.age_band,
   interests: r.interests as CategoryId[],
   pinProtected: r.pin_protected,
@@ -149,7 +157,7 @@ function LiveProvider({ children }: { children: React.ReactNode }) {
     const householdId = hh.data?.id ?? "";
     // Filter to our own household: staff accounts can read every household's membership.
     const [profRes, wkRes, entRes] = await Promise.all([
-      db.from("profiles").select("*").eq("household_id", householdId).order("created_at"),
+      db.from("profiles").select(PROFILE_COLS).eq("household_id", householdId).order("created_at"),
       db.from("workouts").select("id, slug"),
       db.from("entitlements").select("*").eq("household_id", householdId).maybeSingle(),
     ]);

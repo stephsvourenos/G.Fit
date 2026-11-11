@@ -21,6 +21,19 @@ export function useReducedMotion() {
  */
 export function Avatar({ p, size = 96, still }: { p: Pick<Profile, "avatar" | "nickname">; size?: number; still?: boolean }) {
   const reduced = useReducedMotion();
+  if (p.avatar.coach) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- small portrait from our own storage
+      <img
+        src={p.avatar.coach.imageUrl}
+        alt=""
+        width={size}
+        height={size}
+        className="rounded-[28%] bg-ink-3 object-cover shadow-lg ring-1 ring-white/10"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
   const pic = avatarById(p.avatar.emoji);
   if (pic) {
     return (

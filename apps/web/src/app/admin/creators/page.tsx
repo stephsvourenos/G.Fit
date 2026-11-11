@@ -2,6 +2,7 @@ import { formatMoney } from "@app/domain";
 import { contracts } from "@app/mock-data";
 import { Badge, PageHeader, Table } from "@/components/AdminShell";
 import { creatorBalances } from "@/lib/finance-demo";
+import { CoachPortraits } from "./CoachPortraits";
 import { LiveContracts } from "./LiveContracts";
 
 export default function CreatorsPage() {
@@ -97,6 +98,7 @@ export default function CreatorsPage() {
           </>
         }
       />
+      <CoachPortraits />
     </>
   );
 }

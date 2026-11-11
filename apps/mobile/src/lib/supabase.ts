@@ -11,17 +11,17 @@ import { AppState, Platform } from "react-native";
  */
 // Defaults are the development project's PUBLIC address and publishable key, so cloud-published
 // previews (which have no .env file) connect to it. Production builds set their own values.
-const URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "https://iwwnexttdqksrwqafazi.supabase.co";
+export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "https://iwwnexttdqksrwqafazi.supabase.co";
 const KEY = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_wk7bojwHFpsZlOBqOcCFPA_os_1w4z6";
 
-export const supabaseConfigured = Boolean(URL && KEY);
+export const supabaseConfigured = Boolean(SUPABASE_URL && KEY);
 
 let client: SupabaseClient | undefined;
 
 export function supabase(): SupabaseClient {
   if (!supabaseConfigured) throw new Error("Supabase is not configured");
   if (!client) {
-    client = createClient(URL!, KEY!, {
+    client = createClient(SUPABASE_URL!, KEY!, {
       auth: {
         ...(Platform.OS !== "web" ? { storage: AsyncStorage } : {}),
         autoRefreshToken: true,

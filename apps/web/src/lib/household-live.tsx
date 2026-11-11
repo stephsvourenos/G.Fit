@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import type { AgeBand, CategoryId, HouseholdEntitlement, Intensity, Profile } from "@app/domain";
+import { coachPortraitUrl, type AgeBand, type CategoryId, type HouseholdEntitlement, type Intensity, type Profile } from "@app/domain";
 import { HouseholdCtx } from "./household-context";
 import { PIN_UNLOCK_MS, type AccountStatus, type HouseholdState, type PinResult } from "./household-types";
 import { friendlyError, supabase } from "./supabase";
@@ -26,13 +26,21 @@ interface ProfileRow {
   interests: string[];
   pin_protected: boolean;
   max_intensity: Intensity | null;
+  coach?: { id: string; display_name: string; portrait_path: string | null } | null;
 }
+
+/** Profiles plus the coach portrait they picked (if any). */
+const PROFILE_COLS = "*, coach:instructors!avatar_instructor_id(id, display_name, portrait_path)";
 
 const toProfile = (r: ProfileRow): Profile => ({
   id: r.id,
   householdId: r.household_id,
   nickname: r.nickname,
-  avatar: { emoji: r.avatar_emoji, colour: r.avatar_colour },
+  avatar: {
+    emoji: r.avatar_emoji,
+    colour: r.avatar_colour,
+    ...(r.coach?.portrait_path ? { coach: { id: r.coach.id, name: r.coach.display_name, imageUrl: coachPortraitUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", r.coach.portrait_path) } } : {}),
+  },
   ageBand: r.age_band,
   interests: r.interests as CategoryId[],
   pinProtected: r.pin_protected,
@@ -108,7 +116,7 @@ export function LiveHouseholdProvider({ children }: { children: React.ReactNode 
 
     const [pinSet, profRes, wkRes, entRes] = await Promise.all([
       db.rpc("household_pin_is_set"),
-      db.from("profiles").select("*").order("created_at"),
+      db.from("profiles").select(PROFILE_COLS).order("created_at"),
       db.from("workouts").select("id, slug"),
       // Filter to our own household: staff accounts can read every household's membership.
       db.from("entitlements").select("*").eq("household_id", hh.id).maybeSingle(),
@@ -243,8 +251,9 @@ export function LiveHouseholdProvider({ children }: { children: React.ReactNode 
             interests: p.interests,
             pin_protected: p.pinProtected,
             max_intensity: p.maxIntensity ?? null,
+            avatar_instructor_id: p.avatar.coach?.id ?? null,
           })
-          .select("*")
+          .select(PROFILE_COLS)
           .single();
         if (error) return fail(error);
         setProfiles((list) => [...list, toProfile(data as ProfileRow)]);
@@ -253,9 +262,9 @@ export function LiveHouseholdProvider({ children }: { children: React.ReactNode 
       },
       updateProfile: async (id, patch) => {
         const row: Record<string, unknown> = {};
-        if (patch.avatar) { row.avatar_emoji = patch.avatar.emoji; row.avatar_colour = patch.avatar.colour; }
+        if (patch.avatar) { row.avatar_emoji = patch.avatar.emoji; row.avatar_colour = patch.avatar.colour; row.avatar_instructor_id = patch.avatar.coach?.id ?? null; }
         if (patch.nickname !== undefined) row.nickname = patch.nickname.trim();
-        const { data, error } = await db.from("profiles").update(row).eq("id", id).eq("household_id", householdId ?? "").select("*").single();
+        const { data, error } = await db.from("profiles").update(row).eq("id", id).eq("household_id", householdId ?? "").select(PROFILE_COLS).single();
         if (error) return fail(error);
         const next = toProfile(data as ProfileRow);
         setProfiles((list) => list.map((p) => (p.id === id ? next : p)));

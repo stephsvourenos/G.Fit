@@ -136,11 +136,20 @@ export function canPublish(w: Workout, instructor: Instructor | undefined): Publ
   return { ok: problems.length === 0, problems };
 }
 
+export interface CoachPicture { id: string; name: string; imageUrl: string }
+/** Public address of a coach portrait in storage. */
+export const coachPortraitUrl = (supabaseUrl: string, path: string) =>
+  `${supabaseUrl.replace(/\/$/, "")}/storage/v1/object/public/coach-portraits/${path.split("/").map(encodeURIComponent).join("/")}`;
+
 export interface Profile {
   id: string;
   householdId: string;
   nickname: string;
-  avatar: { emoji: string; colour: string };
+  /**
+   * Picture: a library picture ("@id") or emoji on a colour tile. `coach` is set when the family picked a consenting
+   * coach's portrait; the emoji/library picture stays as the fallback if the coach withdraws consent.
+   */
+  avatar: { emoji: string; colour: string; coach?: CoachPicture };
   ageBand: AgeBand;
   interests: CategoryId[];
   /** Adult profiles and the account owner are protected by the parent PIN. */

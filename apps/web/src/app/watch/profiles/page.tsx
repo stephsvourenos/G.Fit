@@ -5,6 +5,8 @@ import { useState } from "react";
 import { AGE_BAND_LABEL, AGE_BANDS, CATEGORIES, CATEGORY_LABEL, isChildBand, type AgeBand, type CategoryId, type Intensity } from "@app/domain";
 import { Avatar } from "@/components/Avatar";
 import { AvatarPicker } from "@/components/AvatarPicker";
+import { useCoachPictures } from "@/lib/coach-pictures";
+import type { CoachPicture, Profile } from "@app/domain";
 import { ParentGate } from "@/components/ParentGate";
 import { useHousehold } from "@/lib/household";
 
@@ -24,6 +26,7 @@ export default function ProfilesPage() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
+  const coaches = useCoachPictures();
   const [editing, setEditing] = useState<string | null>(null);
   const [editPic, setEditPic] = useState("");
   const [editColour, setEditColour] = useState(COLOURS[0]!);
@@ -50,7 +53,7 @@ export default function ProfilesPage() {
               </div>
             ) : (
               <div className="flex items-center gap-4 text-sm">
-                <button onClick={() => { setEditing(editing === p.id ? null : p.id); setEditPic(p.avatar.emoji); setEditColour(p.avatar.colour); }} className="font-semibold text-wattle hover:underline">Change picture</button>
+                <button onClick={() => { setEditing(editing === p.id ? null : p.id); setEditPic(p.avatar.coach ? `coach:${p.avatar.coach.id}` : p.avatar.emoji); setEditColour(p.avatar.colour); }} className="font-semibold text-wattle hover:underline">Change picture</button>
                 <button onClick={() => setConfirmDelete(p.id)} className="text-muted hover:text-coral-2" disabled={h.profiles.length <= 1}>Remove</button>
               </div>
             )}
@@ -58,16 +61,16 @@ export default function ProfilesPage() {
             {editing === p.id && (
               <div className="mt-4 space-y-4 rounded-2xl bg-ink-3/60 p-4">
                 <div className="flex items-center gap-3">
-                  <Avatar p={{ nickname: p.nickname, avatar: { emoji: editPic, colour: editColour } }} size={64} />
+                  <Avatar p={{ nickname: p.nickname, avatar: toAvatar(editPic, editColour, coaches, p.avatar.emoji) }} size={64} />
                   <span className="text-sm text-muted">Pick a new picture for {p.nickname}.</span>
                 </div>
-                <PicturePicker value={editPic} colour={editColour} onPick={setEditPic} onColour={setEditColour} />
+                <PicturePicker value={editPic} colour={editColour} onPick={setEditPic} onColour={setEditColour} coaches={coaches} />
                 <div className="flex gap-3">
                   <button
                     disabled={saving}
                     onClick={async () => {
                       setSaving(true);
-                      const r = await h.updateProfile(p.id, { avatar: { emoji: editPic, colour: editColour } });
+                      const r = await h.updateProfile(p.id, { avatar: toAvatar(editPic, editColour, coaches, p.avatar.emoji) });
                       setSaving(false);
                       if (!r.ok) return setError(r.message);
                       setEditing(null);
@@ -97,7 +100,7 @@ export default function ProfilesPage() {
             e.preventDefault();
             setSaving(true);
             setError(undefined);
-            const r = await h.addProfile({ nickname: nickname.trim(), ageBand, avatar: { emoji, colour }, interests, pinProtected: !isChildBand(ageBand), maxIntensity: maxIntensity || undefined });
+            const r = await h.addProfile({ nickname: nickname.trim(), ageBand, avatar: toAvatar(emoji, colour, coaches, "@run1"), interests, pinProtected: !isChildBand(ageBand), maxIntensity: maxIntensity || undefined });
             setSaving(false);
             if (!r.ok) return setError(r.message);
             setAdding(false);
@@ -106,13 +109,13 @@ export default function ProfilesPage() {
           }}
         >
           <div className="flex items-center gap-4">
-            <Avatar p={{ nickname, avatar: { emoji, colour } }} size={64} />
+            <Avatar p={{ nickname, avatar: toAvatar(emoji, colour, coaches, "@run1") }} size={64} />
             <label className="flex-1 text-sm font-semibold">Nickname
               <input required maxLength={20} value={nickname} onChange={(e) => setNickname(e.target.value)} className="mt-1 w-full rounded-xl bg-ink-3 px-3 py-2 font-normal" placeholder="e.g. Mia (no surnames)" />
             </label>
           </div>
           <fieldset><legend className="mb-3 text-sm font-semibold">Choose a picture</legend>
-            <PicturePicker value={emoji} colour={colour} onPick={setEmoji} onColour={setColour} />
+            <PicturePicker value={emoji} colour={colour} onPick={setEmoji} onColour={setColour} coaches={coaches} />
           </fieldset>
           <label className="block text-sm font-semibold">Age band
             <select value={ageBand} onChange={(e) => setAgeBand(e.target.value as AgeBand)} className="mt-1 w-full rounded-xl bg-ink-3 px-3 py-2 font-normal">
@@ -143,11 +146,11 @@ export default function ProfilesPage() {
 }
 
 /** The illustrated library, plus the original emoji tiles (with a colour) for anyone who prefers them. */
-function PicturePicker({ value, colour, onPick, onColour }: { value: string; colour: string; onPick: (v: string) => void; onColour: (c: string) => void }) {
-  const isEmoji = !value.startsWith("@");
+function PicturePicker({ value, colour, onPick, onColour, coaches }: { value: string; colour: string; onPick: (v: string) => void; onColour: (c: string) => void; coaches: CoachPicture[] }) {
+  const isEmoji = !value.startsWith("@") && !value.startsWith("coach:");
   return (
     <div className="space-y-5">
-      <AvatarPicker value={value} colour={colour} onPick={onPick} />
+      <AvatarPicker value={value} colour={colour} onPick={onPick} coaches={coaches} />
       <section aria-label="Classic">
         <h3 className="mb-2 text-sm font-semibold text-paper/80">Classic</h3>
         <div className="flex flex-wrap gap-2">{EMOJIS.map((x) => <button type="button" key={x} aria-pressed={value === x} onClick={() => onPick(x)} className={`h-11 w-11 rounded-xl text-xl ${value === x ? "bg-white/20 ring-2 ring-sun" : "bg-ink-3"}`}>{x}</button>)}</div>
@@ -157,4 +160,17 @@ function PicturePicker({ value, colour, onPick, onColour }: { value: string; col
       </section>
     </div>
   );
+}
+
+/**
+ * Turn the picker's choice into a saved picture. A coach portrait keeps a library picture or emoji underneath,
+ * which shows again automatically if that coach ever withdraws consent.
+ */
+function toAvatar(value: string, colour: string, coaches: CoachPicture[], fallback: string): Profile["avatar"] {
+  if (value.startsWith("coach:")) {
+    const coach = coaches.find((c) => `coach:${c.id}` === value);
+    const under = fallback && !fallback.startsWith("coach:") ? fallback : "@run1";
+    return coach ? { emoji: under, colour, coach } : { emoji: under, colour };
+  }
+  return { emoji: value, colour };
 }
