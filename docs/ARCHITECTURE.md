@@ -3,43 +3,48 @@
 ```mermaid
 flowchart LR
   subgraph Users
-    P[Parents & kids<br/>iPhone / Android app]
-    W[Members on the website]
-    A[Admin / operator]
-    C[Creators]
+    P[Families<br/>iPhone / Android app]
+    W[Families on the website]
+    A[Staff / admin]
+    C[Creators & coaches]
   end
 
-  subgraph Apps["Our code (one TypeScript monorepo)"]
-    M[apps/mobile<br/>Expo + Expo Router<br/>sign-in only]
-    N[apps/web — Next.js<br/>website · member app · /admin · /creator]
-    D[(packages/domain<br/>money · royalties · referrals<br/>playback rules · ledger)]
+  subgraph Apps["Our code (one TypeScript monorepo, GitHub)"]
+    M[apps/mobile<br/>Expo + Expo Router<br/>sign-in only · Expo Go preview]
+    N[apps/web — Next.js on Vercel<br/>website · /watch · /admin · /creator]
+    D[(packages/domain<br/>money · royalties · referrals<br/>playback rules · emails · ABA)]
   end
 
   subgraph Supabase["Supabase (Sydney region)"]
     AUTH[Auth<br/>household sign-in]
-    DB[(Postgres + Row-Level Security<br/>households · profiles · catalogue<br/>ledger · contracts · audit)]
-    FN[Server jobs & webhooks<br/>month-end runs · reconciliation]
+    DB[(Postgres + Row-Level Security<br/>households · profiles · catalogue<br/>billing · ledger · payouts · audit)]
+    FN[Edge Functions<br/>checkout · webhooks · playback tokens<br/>month-end · payout file · emails]
+    CRON[pg_cron jobs<br/>playback · reconcile · emails · health]
+    ST[Storage<br/>coach photos]
   end
 
   subgraph Providers
-    MUX[Mux<br/>video encoding & delivery]
+    MUX[Mux<br/>upload · signed playback · captions]
     STRIPE[Stripe<br/>Checkout · Billing · Portal]
-    BANK[Business bank<br/>payout file upload]
+    MAIL[Resend email<br/>not connected yet]
+    BANK[ANZ<br/>ABA file upload by a person]
   end
 
   P --> M
   W --> N
   A --> N
   C --> N
-  M -- "API calls (no secrets in app)" --> N
   M & N --> AUTH
-  N --> DB
+  M & N -- "public key only; RLS decides" --> DB
+  M & N -- "anything needing a secret" --> FN
+  CRON --> FN
   FN --> DB
-  M & N -. "signed, short-lived video token<br/>(only after entitlement check)" .-> MUX
+  M & N -. "signed, short-lived video token<br/>(after entitlement + age + PIN check)" .-> MUX
   N -- "hosted checkout redirect" --> STRIPE
   STRIPE -- "signed webhooks" --> FN
   MUX -- "signed webhooks" --> FN
-  FN -- "CSV / ABA file (maker + checker)" --> BANK
+  FN --> MAIL
+  FN -- "ABA file (maker + checker)" --> BANK
   D --- M & N & FN
 ```
 
@@ -66,13 +71,23 @@ flowchart LR
 | Billing | Stripe (web) behind a `BillingProvider` abstraction | Apple/Google IAP can be added without touching royalties |
 | Video | Mux with signed playback | Pay-as-you-go, no servers to run, signed URLs stop link sharing |
 | Integrations | Mock adapters until keys exist | The whole product runs locally with zero accounts |
+| Deploys | Vercel (web), GitHub Actions (functions), EAS workflow (phone preview) — all from `main` | What's running always equals the repository |
+| Scheduled jobs | pg_cron → `private.call_function()` using `private.app_config.functions_url` | A production copy can never call the test system |
+| Emails | Words in `packages/domain/src/emails.ts`, queued in `member_notices`, sent by `send-emails` | Unit-tested wording; nothing lost before an email service exists |
+| Profile pictures | Original SVG library in `packages/domain/src/avatars.ts`; coach photos only with written consent | No likeness rights problems |
 
 ## Environments
-`local` (mock adapters) → `test` (Supabase dev project + Stripe test mode + Mux test) → `staging` → `production`.
-Secrets live only in `.env.local` on a developer machine and in the hosting provider's encrypted settings.
+`local` (mock adapters) → `test` (Supabase `gfit-dev-sydney` + Stripe test mode + Mux `gfit-dev` + Expo preview) →
+`production` (not created yet; plan in `docs/PRODUCTION_SETUP.md`).
+Secrets live only in Supabase Edge Function secrets (and `.env.local` on a developer machine); clients use only the
+public URL and publishable key.
 `pnpm check:env` refuses a live Stripe key outside production.
 
-## Backups & rollback (summary — full runbook in Phase 6)
-Supabase daily backups (Pro plan adds point-in-time recovery); database changes only via versioned migrations;
+## Backups & rollback
+Nightly encrypted backup workflow (needs two GitHub secrets) + `docs/RESTORE.md` (rebuild rehearsed 9 Nov);
+Supabase daily backups on Pro (point-in-time recovery optional); database changes only via versioned migrations;
 web deploys are immutable and can be rolled back instantly on Vercel; mobile uses staged store releases + EAS
 Update for quick fixes.
+
+
+Data model, server API and current state: `docs/HANDOVER.md` §5–7.

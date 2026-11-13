@@ -1,6 +1,9 @@
 # BUILD_STATUS
 
-_Last updated: 11 Nov 2026 — coach photos as profile pictures_
+_Last updated: 13 Nov 2026 — handover written (`docs/HANDOVER.md`: current state, open questions, next steps)_
+
+## Test suites (13 Nov 2026)
+domain 83/83 · RLS 33/33 · journey 19/19 · finance 38/38 · account closing 8/8 · coach photos 9/9
 
 ## Latest (11 Nov 2026)
 - **Coach photos as profile pictures:** families see a "Coaches" row first in the picture picker (web and phone).
@@ -17,8 +20,8 @@ _Last updated: 11 Nov 2026 — coach photos as profile pictures_
 - **Profile pictures:** 58 original illustrations in four rows: Movers (24 sporty characters with varied skin
   tones and hair), Animal athletes (8), Gear (18 fitness icons) and On the move (8 animated). The original emoji
   are kept as "Classic". Families can now change an existing profile's picture. Animation is switched off for
-  anyone whose device asks for reduced motion; the phone app shows still versions. No real people (image rights,
-  children's service). 5 new automated checks (83 domain tests pass).
+  anyone whose device asks for reduced motion; the phone app shows still versions. No real people without their
+  written consent (likeness rights); see coach photos (11 Nov). 5 new automated checks (83 domain tests pass).
 - **Public website** redesigned: an interactive "Who's moving today?" hero (tap a family member to see their
   age-appropriate shelf), ages, three steps, parent safety, prices with the 7-day trial, teaching on G.Fit, FAQ.
   Developer links (admin demo, sample referral) removed from the public menu and footer.
@@ -144,13 +147,8 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
   membership; the lookup now filters to the signed-in family)
 - Still to do in Phase 2: a play-through on a real phone in the app (needs a free test build)
 
-## Blockers
-- None. Phone testing on a real device needs either the free Expo Go app + my dev server, or a free Expo (EAS) test
-  build — I'll set that up when you're ready (ACCOUNT_SETUP.md §8).
-
-## Next
-1. ✅ Code is on GitHub: `stephsvourenos/G.Fit` (27 Oct 2026).
-2. Phase 1: Supabase project (I'll walk you through it), migrations, RLS policies + tests, real sign-in.
+## Blockers and next steps
+See `docs/HANDOVER.md` §10 (open questions) and §12 (exact next steps).
 
 ## Phase 3 — Website subscriptions (Stripe TEST MODE) — 7 Nov 2026
 - Stripe account **G.Fit sandbox** (test mode). Product "Family membership": **A$14.99/month** and **A$149.99/year**,
@@ -304,6 +302,6 @@ pnpm --filter web build:preview   # static preview export to apps/web/out
 - **Admin Overview and Creator liability ledger now live** — no admin page shows sample figures any more
 - Tests: domain 78/78; RLS 33/33 (adds: can't publish without video + captions); journey 19/19; finance 38/38;
   account closing 8/8; browser checks of all new screens with no security-policy violations
-- **Still to do in Phase 6:** separate production environment, error alerts, backups + restore drill, security
-  review, launch checklist, lawyer-review drafts (privacy, terms, creator contract), connect email service (after
-  domain), app-store billing decision and store accounts (when ready to submit)
+- **Still to do in Phase 6 (13 Nov):** owner-side items only. Production environment (needs go-ahead), backup
+  secrets, private repo, lawyer and accountant reviews, final name + domain, email service, real content, ANZ test file,
+  app-store decision. Exact order in `docs/HANDOVER.md` §12

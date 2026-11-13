@@ -9,7 +9,7 @@ Tick every line before real families can pay. ✋ = you, 🤖 = me (the build ag
 - [ ] ⚖️ Membership terms reviewed: Australian Consumer Law, the free-trial and auto-renewal wording, promo terms,
       refunds
 - [ ] ⚖️ Creator agreement reviewed: royalty pool, referral commission, guardian-managed child creators and
-      child-employment permits per state, music rights
+      child-employment permits per state, music rights, clause 10 (coach photo as a profile picture)
 - [ ] ⚖️ Accountant: GST registration and treatment, creator withholding and ABNs, how creator payments appear in
       the books
 - [ ] ✋ Business insurance (public liability / professional indemnity for fitness content)
@@ -18,6 +18,8 @@ Tick every line before real families can pay. ✋ = you, 🤖 = me (the build ag
 ## B. Content
 - [ ] ✋ Real workouts uploaded, approved and published (rights checklist complete for each)
 - [ ] ✋ Creator contracts signed in the system, with bank details entered by creators
+- [ ] ✋ Coach photos added only for coaches who signed clause 10 (Admin → Creators)
+- [ ] ✋ Paid Mux plan before uploading more than 10 videos
 - [ ] ✋ Safety notes reviewed by a qualified person
 
 ## C. Money
@@ -26,7 +28,7 @@ Tick every line before real families can pay. ✋ = you, 🤖 = me (the build ag
 - [ ] ✋ One real A$14.99 sign-up on your own card, then refunded. Check it appears in Finance reports and the
       refund reverses correctly.
 - [ ] ✋ ANZ direct entry set up; test ABA file accepted by ANZ's file checker (Phase 5 sign-off)
-- [ ] 🤖 Founder offer settings decided (closing date, maximum number)
+- [ ] ✋ Founder offer settings decided (closing date, maximum number) and whether the homepage advertises it
 
 ## D. Technology
 - [ ] ✋/🤖 Production Supabase (Pro), rebuilt from the repository, all test suites passing

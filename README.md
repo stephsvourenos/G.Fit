@@ -1,15 +1,15 @@
-# PROJECT_NAME — family fitness streaming platform
+# G.Fit — family fitness streaming platform
 
 Curated, Netflix-style on-demand workouts for whole households: website + member app + admin + creator portal
 (Next.js) and iPhone/Android apps (Expo), sharing one tested business-rules engine.
 
-> **Status: Phase 0 prototype.** Everything runs on sample data. No real accounts, payments or videos are
-> connected. See `BUILD_STATUS.md`.
+> **Status (13 Nov 2026): Phase 6, launch readiness.** Real accounts (Supabase), signed video (Mux) and
+> memberships (Stripe **test mode**) work on the test system. Start with `docs/HANDOVER.md`; change log in
+> `BUILD_STATUS.md`.
 
 ## Look around
-Screenshots of every key screen are in the latest delivery. To click through it yourself, run it locally (below)
-— about 10 minutes the first time. Demo parent PIN: **1234**. A hosted preview link arrives in Phase 1 once the
-code is on GitHub and connected to a free Vercel preview.
+Private test site: https://g-fit-liard.vercel.app (Vercel sign-in required). Phone preview: open the Expo Go link in
+`docs/HANDOVER.md` §3. Running locally with no keys uses sample data (demo parent PIN **1234**).
 
 ## Run it on your Windows PC (optional)
 1. Install **Node.js LTS** from https://nodejs.org (accept the defaults).
@@ -31,9 +31,10 @@ Stop a running command with **Ctrl + C**.
 |---|---|
 | `apps/web` | Website, member app (`/watch`), admin (`/admin`), creator portal (`/creator`) |
 | `apps/mobile` | iOS/Android app (sign-in only — see `docs/APP_STORE_BILLING_DECISION.md`) |
-| `packages/domain` | Business rules: money, playback qualification, royalties, referrals, ledger, payouts — with tests |
+| `packages/domain` | Business rules: money, playback qualification, royalties, referrals, ledger, payouts, emails, bank file, profile pictures — with tests |
+| `supabase/` | Database migrations and Edge Functions |
 | `packages/mock-data` | Sample catalogue, households, invoices and a 5-month finance simulation |
-| `packages/config` | Branding (`PROJECT_NAME` placeholder) and environment validation |
+| `packages/config` | Branding (name G.Fit, colours) and environment validation |
 | `docs/` | Brief review, architecture, phased plan, billing gate, security |
 | `ACCOUNT_SETUP.md` · `DECISIONS_REQUIRED.md` · `BUILD_STATUS.md` | Your checklists |
 

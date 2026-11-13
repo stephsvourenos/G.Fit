@@ -1,9 +1,12 @@
 # Phased implementation plan
 
+_Status 13 Nov 2026: Phases 0–5 complete; Phase 6 in progress (engineering done, waiting on owner accounts,
+decisions and professional reviews). Current state and next steps: `docs/HANDOVER.md`. Change log: `BUILD_STATUS.md`._
+
 Each phase ends with: tests passing, BUILD_STATUS.md updated, an account-setup update, and a short demo of what
 changed. "Definition of done" (DoD) items are the sign-off checklist.
 
-## Phase 0 — Foundations & clickable prototype ✅ (this delivery)
+## Phase 0 — Foundations & clickable prototype ✅ (27 Oct 2026)
 Accounts needed: none.
 - [x] Brief review with risks and fixes (`docs/BRIEF_REVIEW.md`)
 - [x] Architecture, plan, ACCOUNT_SETUP, DECISIONS_REQUIRED, BUILD_STATUS
@@ -22,7 +25,7 @@ Accounts needed: none.
 
 **DoD:** all tests green; web builds; mobile type-checks and bundles; prototype viewable via a link. ✅
 
-## Phase 1 — Accounts, data & permissions (Supabase)
+## Phase 1 — Accounts, data & permissions (Supabase) ✅ (3 Nov 2026)
 Accounts: **GitHub** (code home, free) then **Supabase** (free tier is enough).
 - Database migrations for households, profiles, catalogue, content workflow, contracts, ledger, audit log
 - Row-Level Security policies + automated tests that prove: a child profile can't read adult data; a creator can't
@@ -36,7 +39,7 @@ Accounts: **GitHub** (code home, free) then **Supabase** (free tier is enough).
 **DoD:** acceptance tests 1 (minus payment) and 8 pass against a real Supabase dev project; the web app runs on
 real accounts; mock mode still works with no keys.
 
-## Phase 2 — Video (Mux)
+## Phase 2 — Video (Mux) ✅ (7 Nov 2026; casting confirmed on a real TV)
 Accounts: **Mux** (free plan to start).
 - Admin direct upload to Mux (browser → Mux, signed one-time URL); webhook updates asset status
 - Signed playback tokens minted only after `decidePlayback` passes; short expiry
@@ -47,7 +50,7 @@ Accounts: **Mux** (free plan to start).
 **DoD:** acceptance test 9 and the playback scenarios pass end-to-end with test assets; casting works on a real
 TV; no unsigned playback possible.
 
-## Phase 3 — Billing (Stripe, TEST MODE ONLY)
+## Phase 3 — Billing (Stripe, TEST MODE ONLY) ✅ (7 Nov 2026, test mode)
 Accounts: **Stripe** (test mode; no live charges).
 - Products/Prices (monthly, annual, founder), promotion codes, GST settings, hosted Checkout, Customer Portal
 - Signed webhook handler (idempotent, fetch-current-object), reconciliation job, invoice/refund snapshots
@@ -57,7 +60,7 @@ Accounts: **Stripe** (test mode; no live charges).
 **DoD:** acceptance tests 1, 2 and 6 pass end-to-end with Stripe test cards; replayed and out-of-order webhooks
 are proven safe.
 
-## Phase 4 — Creator economics on real data
+## Phase 4 — Creator economics on real data ✅ (7 Nov 2026)
 Accounts: none new.
 - Versioned contracts UI (create new version, effective dates, guardian-managed payees)
 - Scheduled month-end runs (provisional → final), immutable snapshots, statement PDFs, annual summaries
@@ -67,7 +70,7 @@ Accounts: none new.
 
 **DoD:** acceptance tests 3, 4, 5 and 7 pass against the database, cent-exact and reproducible.
 
-## Phase 5 — Payouts & reporting
+## Phase 5 — Payouts & reporting ✅ (7 Nov 2026; ANZ file-checker test still with the owner)
 Accounts: none by default (Xero only if you approve).
 - Bank file export built to your bank's actual specification (ABA or CSV) — sample only until verified
 - Maker/checker with a separate finance-approver role; import bank confirmation file; reconciliation
@@ -75,11 +78,17 @@ Accounts: none by default (Xero only if you approve).
 
 **DoD:** a dry-run payout file validated by your bank's test/upload checker; no batch can be paid twice.
 
-## Phase 6 — Production readiness & app stores
+## Phase 6 — Production readiness & app stores ⏳ (in progress)
 Accounts: Apple Developer, Google Play Console, domain/DNS, email sending, error monitoring, Vercel, Expo EAS.
 - App-store billing decision (`APP_STORE_BILLING_DECISION.md`) with current official sources; IAP adapter if needed
 - Legal reviews: privacy policy, terms, creator contracts, Children's Online Privacy Code, consumer law, NSW
   child-employment rules; external exercise-safety review of child workouts
 - Security review / penetration test, backup-restore drill, monitoring, runbooks, launch checklist
+
+Done so far: founder/promo pricing (test clocks), member emails (queued; no provider yet), price-change and
+offer-ending notices, phone preview (Expo Go), restore drill, backup workflow, system health + alerts, security
+headers and review, production plan, launch checklist, legal drafts, content pipeline with automatic captions,
+new colour scheme, profile picture library, public website redesign, consent-gated coach photos.
+Remaining: owner-side items in `docs/LAUNCH_CHECKLIST.md` and `docs/HANDOVER.md` §12.
 
 **DoD:** all 10 acceptance tests pass in staging; reviews signed off; you approve go-live in writing.
