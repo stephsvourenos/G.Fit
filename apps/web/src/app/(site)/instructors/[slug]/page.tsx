@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CATEGORY_LABEL } from "@app/domain";
 import { Art, CATEGORY_ART } from "@/components/site/Art";
-import { PublicWorkoutCard } from "@/components/site/PublicCards";
+import { ProgrammeCard, PublicWorkoutCard } from "@/components/site/PublicCards";
 import { Btn, PageHero, Section, SectionHeading, Wrap } from "@/components/site/ui";
 import { getCatalogue } from "@/lib/public-catalogue";
 
@@ -33,6 +33,7 @@ export default async function InstructorPage({ params }: { params: Promise<{ slu
   const { cat, i } = await find(slug);
   if (!i) notFound();
   const ws = cat.workouts.filter((w) => w.instructorSlug === i.slug);
+  const ps = cat.programmes.filter((p) => p.instructorSlug === i.slug);
   const jsonLd = { "@context": "https://schema.org", "@type": "Person", name: i.name, description: i.bio, jobTitle: "Fitness instructor" };
 
   return (
@@ -68,6 +69,14 @@ export default async function InstructorPage({ params }: { params: Promise<{ slu
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{ws.map((w) => <PublicWorkoutCard key={w.slug} w={w} />)}</div>
         </Wrap>
       </Section>
+      {ps.length > 0 && (
+        <Section>
+          <Wrap>
+            <SectionHeading eyebrow="Go deeper" title={`Programmes from ${i.name}`} desc="Guided series, all included in your membership." />
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{ps.map((p) => <ProgrammeCard key={p.slug} p={p} />)}</div>
+          </Wrap>
+        </Section>
+      )}
     </main>
   );
 }

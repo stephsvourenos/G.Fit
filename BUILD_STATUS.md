@@ -5,6 +5,16 @@ _Last updated: 22 Nov 2026 — new public website (stages 1–4 of `docs/WEBSITE
 ## Test suites (22 Nov 2026)
 domain 83/83 · RLS 33/33 · journey 19/19 · finance 38/38 · account closing 8/8 · coach photos 9/9 · public catalogue 11/11
 
+## Latest (22 Nov 2026, afternoon): programmes
+- **Programmes (stage 5)**, all included in the membership, with no price field on purpose. Admin → Programmes:
+  create, choose the coach (optional), artwork, order the workouts, then publish, unpublish or archive (status
+  changes are audited). Website: `/programmes` and `/programmes/[slug]` (session-by-session list, JSON-LD), plus
+  programmes on instructor pages and in the sitemap.
+- Migration `20261122100000_programmes.sql` (**waiting for approval**): `programmes`, `programme_workouts`, staff-only
+  editing, members read published only, a publish rule (needs ≥1 published workout), `set_programme_workouts()`,
+  public views `public_programmes` / `public_programme_workouts` (published AU workouts only, junior coaches never
+  named) and `tests.run_programme_checks()`. Until it's applied, `/programmes` shows "coming soon".
+
 ## Latest (22 Nov 2026)
 - **New public website** from the approved prototype: layout and copy from the prototype, with the owner's fonts and
   colours. Real addresses: `/`, `/workouts`, `/workouts/[slug]`, `/instructors`, `/instructors/[slug]`, `/programmes`

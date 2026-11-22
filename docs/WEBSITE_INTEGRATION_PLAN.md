@@ -58,7 +58,7 @@ _22 Nov 2026. Source: the ChatGPT prototype (`gfit-complete-website-preview.html
 2. ✅ Public catalogue: pages built and migration applied (22 Nov).
 3. ✅ Home, pricing, individuals & families, individual-first join and sign-up.
 4. ✅ Support/FAQ, about, teach, contact, legal (marked draft).
-5. Programmes: table, admin screen, directory and detail.
+5. ◐ Programmes: admin screen and pages built; migration `20261122100000_programmes.sql` waiting for approval.
 6. Analytics events and an Admin → Reports panel.
 7. Signed-in discovery home restyle, then a full mobile and desktop test pass and the written report.
 

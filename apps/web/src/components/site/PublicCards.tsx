@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CATEGORY_LABEL, formatDuration } from "@app/domain";
-import { equipmentText, INTENSITY_LABEL, type PublicInstructor, type PublicWorkout } from "@/lib/public-catalogue";
+import { equipmentText, INTENSITY_LABEL, type PublicInstructor, type PublicProgramme, type PublicWorkout } from "@/lib/public-catalogue";
 import { Art, CATEGORY_ART } from "./Art";
 import { Tag } from "./ui";
 
@@ -56,5 +56,39 @@ export function InstructorCard({ i }: { i: PublicInstructor }) {
         </span>
       </div>
     </Link>
+  );
+}
+
+export function ProgrammeArt({ p, big = false }: { p: PublicProgramme; big?: boolean }) {
+  return (
+    <div className="grain absolute inset-0" style={{ background: `linear-gradient(135deg, ${p.thumbnail.from}, ${p.thumbnail.to})` }} aria-hidden>
+      <span className={`absolute rotate-[-8deg] drop-shadow-xl ${big ? "bottom-[8%] right-[7%] text-[120px]" : "bottom-2 right-3 text-5xl"}`}>{p.thumbnail.emoji}</span>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+    </div>
+  );
+}
+
+export function ProgrammeCard({ p }: { p: PublicProgramme }) {
+  const minutes = Math.round(p.totalDurationSec / 60);
+  return (
+    <article className="group min-w-0 overflow-hidden rounded-[18px] bg-ink-2 ring-1 ring-line transition hover:-translate-y-1 hover:ring-coral/60">
+      <Link href={`/programmes/${p.slug}/`} className="block">
+        <div className="relative aspect-[1.35] overflow-hidden">
+          <ProgrammeArt p={p} />
+          <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+            <Tag>Included</Tag>
+            <span className="rounded-md bg-black/60 px-2 py-1 text-[11px] font-bold">{p.workoutCount} SESSION{p.workoutCount === 1 ? "" : "S"}</span>
+          </div>
+        </div>
+        <div className="p-4">
+          <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-coral-2">{p.categories.map((c) => CATEGORY_LABEL[c] ?? c).join(" · ")}</div>
+          <h3 className="font-display mt-1 text-lg font-bold leading-snug tracking-[-0.02em]">{p.title}</h3>
+          <p className="mt-2 line-clamp-2 min-h-10 text-sm text-muted">{p.description}</p>
+          <div className="mt-3 flex justify-between gap-2 border-t border-line pt-3 text-xs text-muted">
+            <span>{p.instructorName ?? "G.Fit coaches"}</span><span>{minutes} min in total</span>
+          </div>
+        </div>
+      </Link>
+    </article>
   );
 }

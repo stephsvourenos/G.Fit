@@ -1,5 +1,5 @@
 import { coachPortraitUrl, type AgeBand, type CategoryId, type Equipment, type Intensity } from "@app/domain";
-import { instructors as mockInstructors, workouts as mockWorkouts } from "@app/mock-data";
+import { instructors as mockInstructors, programs as mockProgrammes, workouts as mockWorkouts } from "@app/mock-data";
 
 /**
  * The public website's view of the catalogue: published workouts and adult instructors only, metadata only.
@@ -35,9 +35,26 @@ export interface PublicInstructor {
   workoutCount: number;
 }
 
+export interface PublicProgramme {
+  slug: string;
+  title: string;
+  description: string;
+  thumbnail: { from: string; to: string; emoji: string };
+  publishedAt?: string;
+  instructorSlug?: string;
+  instructorName?: string;
+  workoutCount: number;
+  totalDurationSec: number;
+  ageBands: AgeBand[];
+  categories: CategoryId[];
+  /** Workout slugs in order (published workouts only). */
+  steps: string[];
+}
+
 export interface Catalogue {
   workouts: PublicWorkout[];
   instructors: PublicInstructor[];
+  programmes: PublicProgramme[];
   /** False when the live catalogue couldn't be reached — pages show a gentle "come back soon" instead of an error. */
   ok: boolean;
   mock: boolean;
@@ -58,9 +75,12 @@ async function rest<T>(path: string): Promise<T> {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 async function loadLive(): Promise<Catalogue> {
   try {
-    const [w, i] = await Promise.all([
+    const [w, i, p, steps] = await Promise.all([
       rest<any[]>("public_workouts?select=*&order=published_at.desc.nullslast"),
       rest<any[]>("public_instructors?select=*&order=display_name"),
+      // Programmes arrived later; if their views aren't there yet the rest of the site still works.
+      rest<any[]>("public_programmes?select=*&order=published_at.desc.nullslast").catch(() => []),
+      rest<any[]>("public_programme_workouts?select=*&order=programme_slug,step").catch(() => []),
     ]);
     return {
       ok: true,
@@ -90,9 +110,23 @@ async function loadLive(): Promise<Catalogue> {
         portraitUrl: r.portrait_path ? coachPortraitUrl(url ?? "", r.portrait_path) : undefined,
         workoutCount: r.workout_count ?? 0,
       })),
+      programmes: p.map((r) => ({
+        slug: r.slug,
+        title: r.title,
+        description: r.description ?? "",
+        thumbnail: { from: r.thumbnail?.from ?? "#2e2a3b", to: r.thumbnail?.to ?? "#e0177a", emoji: r.thumbnail?.emoji ?? "📅" },
+        publishedAt: r.published_at?.slice(0, 10),
+        instructorSlug: r.instructor_slug ?? undefined,
+        instructorName: r.instructor_name ?? undefined,
+        workoutCount: r.workout_count ?? 0,
+        totalDurationSec: r.total_duration_sec ?? 0,
+        ageBands: r.age_bands ?? [],
+        categories: r.categories ?? [],
+        steps: steps.filter((x) => x.programme_slug === r.slug).map((x) => x.workout_slug as string),
+      })),
     };
   } catch {
-    return { ok: false, mock: false, workouts: [], instructors: [] };
+    return { ok: false, mock: false, workouts: [], instructors: [], programmes: [] };
   }
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -131,7 +165,25 @@ function loadMock(): Catalogue {
       workoutCount: workouts.filter((w) => w.instructorName === i.displayName).length,
     }))
     .filter((i) => i.workoutCount > 0);
-  return { ok: true, mock: true, workouts, instructors };
+  const bySlug = new Map(workouts.map((w) => [w.slug, w]));
+  const programmes: PublicProgramme[] = mockProgrammes.map((p) => {
+    const ws = p.workoutIds.map((id) => bySlug.get(id.replace(/^wk-/, ""))).filter((w): w is PublicWorkout => Boolean(w));
+    const lead = ws.find((w) => w.instructorName);
+    return {
+      slug: p.id.replace(/^pg-/, ""),
+      title: p.title,
+      description: p.blurb,
+      thumbnail: { from: ws[0]?.thumbnail.from ?? "#2e2a3b", to: ws[0]?.thumbnail.to ?? "#e0177a", emoji: p.emoji },
+      instructorSlug: lead?.instructorSlug,
+      instructorName: lead?.instructorName,
+      workoutCount: ws.length,
+      totalDurationSec: ws.reduce((t, w) => t + w.durationSec, 0),
+      ageBands: [...new Set(ws.flatMap((w) => w.ageBands))],
+      categories: [...new Set(ws.map((w) => w.category))],
+      steps: ws.map((w) => w.slug),
+    };
+  }).filter((p) => p.workoutCount > 0);
+  return { ok: true, mock: true, workouts, instructors, programmes };
 }
 
 export async function getCatalogue(): Promise<Catalogue> {
