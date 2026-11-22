@@ -3,9 +3,8 @@
 _22 Nov 2026. Source: the ChatGPT prototype (`gfit-complete-website-preview.html`) and its brief (`CLAUDE_CODE_HANDOFF.md`). Repo checked at commit `f531542` (13 Nov)._
 
 ## Progress
-- **22 Nov:** stages 1, 3 and 4 are done and pushed to the test site. Stage 2's pages are built, but the migration
-  `20261122090000_public_catalogue.sql` is waiting for the owner's approval. Until it's applied, the live
-  workout and instructor pages show "taking a moment to load".
+- **22 Nov:** stages 1–4 are done and live on the test site. The public catalogue migration was applied and passes
+  11/11 checks. Next.js was upgraded to 16.4.6 and the server bundle redeployed.
 
 ## 1. What exists today (audit)
 | Area | Current state | Effect on the new website |
@@ -56,7 +55,7 @@ _22 Nov 2026. Source: the ChatGPT prototype (`gfit-complete-website-preview.html
 
 ## 5. Build stages
 1. ✅ Look and frame: header, footer, real URLs, metadata, robots/sitemap (noindex on test).
-2. ◐ Public catalogue: pages built, **migration waiting for approval**.
+2. ✅ Public catalogue: pages built and migration applied (22 Nov).
 3. ✅ Home, pricing, individuals & families, individual-first join and sign-up.
 4. ✅ Support/FAQ, about, teach, contact, legal (marked draft).
 5. Programmes: table, admin screen, directory and detail.
@@ -64,7 +63,6 @@ _22 Nov 2026. Source: the ChatGPT prototype (`gfit-complete-website-preview.html
 7. Signed-in discovery home restyle, then a full mobile and desktop test pass and the written report.
 
 ## 6. What the owner needs to provide, and when
-- **Stage 2 (now):** reply "ready", then approve the migration prompt. It expires after about 2 minutes.
 - **Stage 5/6:** the same approval for the programmes and analytics migrations.
 - **At launch:** set `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_SITE_INDEXABLE=1` on the production Vercel project only.
 - **Before launch:** a support email (after the domain and Resend, D6), the lawyer-reviewed legal text (including the comparison prices), real instructors and workouts (D5), and the production go-ahead.

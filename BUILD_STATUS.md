@@ -2,8 +2,8 @@
 
 _Last updated: 22 Nov 2026 — new public website (stages 1–4 of `docs/WEBSITE_INTEGRATION_PLAN.md`)_
 
-## Test suites (13 Nov 2026)
-domain 83/83 · RLS 33/33 · journey 19/19 · finance 38/38 · account closing 8/8 · coach photos 9/9
+## Test suites (22 Nov 2026)
+domain 83/83 · RLS 33/33 · journey 19/19 · finance 38/38 · account closing 8/8 · coach photos 9/9 · public catalogue 11/11
 
 ## Latest (22 Nov 2026)
 - **New public website** from the approved prototype: layout and copy from the prototype, with the owner's fonts and
@@ -18,13 +18,16 @@ domain 83/83 · RLS 33/33 · journey 19/19 · finance 38/38 · account closing 8
 - **Search engines:** `robots.txt`, `sitemap.xml`, canonical URLs, unique titles and descriptions, and JSON-LD on
   workout and instructor pages. The test site stays **noindex**; set `NEXT_PUBLIC_SITE_INDEXABLE=1` and
   `NEXT_PUBLIC_SITE_URL` on the production domain only.
-- **Public catalogue migration** `20261122090000_public_catalogue.sql` is written but **not applied yet**. It adds
+- **Public catalogue migration** `20261122090000_public_catalogue.sql` **applied 22 Nov** (owner approved). It adds
   instructor slugs and read-only `public_workouts` / `public_instructors` views (published AU workouts, adult coaches
-  only, junior coaches never named, no playback ids), plus `tests.run_public_catalogue_checks()`. Until it's
-  applied, the live workout and instructor pages show a "taking a moment to load" message.
-- **Known:** the domain test `server-copy` fails on a fresh install at `f531542` too: `_shared/domain.js` differs
-  from a fresh bundle. It is not caused by this change and was left alone (regenerating it would redeploy the
-  functions). Next.js 16.4.3 prints a security advisory during build; an upgrade needs owner approval.
+  only, junior coaches never named, no playback ids), plus `tests.run_public_catalogue_checks()` (11/11). Checked as an
+  anonymous visitor: the views work and the `workouts` table is refused. The Supabase advisor flags the two views as
+  "security definer". That's accepted, because they exist so visitors can read a fixed list of safe columns.
+- **Next.js upgraded 16.4.3 → 16.4.6** (owner approved), fixing three moderate advisories (GHSA-mfr8-8qww-v76h,
+  GHSA-vc7v-qv4w-wrv8 and an image-optimiser SVG bypass). `pnpm audit --prod` shows no Next.js advisories.
+- **Server bundle refreshed and redeployed** (owner approved). `_shared/domain.js` was stale: only illustration
+  background colours and the coach-picture address helper differed, with no money, royalty or playback rules. 83/83
+  domain tests pass again.
 
 ## Latest (11 Nov 2026)
 - **Coach photos as profile pictures:** families see a "Coaches" row first in the picture picker (web and phone).
