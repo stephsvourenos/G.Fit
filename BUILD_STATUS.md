@@ -1,9 +1,30 @@
 # BUILD_STATUS
 
-_Last updated: 13 Nov 2026 — handover written (`docs/HANDOVER.md`: current state, open questions, next steps)_
+_Last updated: 22 Nov 2026 — new public website (stages 1–4 of `docs/WEBSITE_INTEGRATION_PLAN.md`)_
 
 ## Test suites (13 Nov 2026)
 domain 83/83 · RLS 33/33 · journey 19/19 · finance 38/38 · account closing 8/8 · coach photos 9/9
+
+## Latest (22 Nov 2026)
+- **New public website** from the approved prototype: layout and copy from the prototype, with the owner's fonts and
+  colours. Real addresses: `/`, `/workouts`, `/workouts/[slug]`, `/instructors`, `/instructors/[slug]`, `/programmes`
+  (coming soon), `/pricing`, `/everyone`, `/join`, `/support`, `/about`, `/teach`, `/contact`, `/legal/*`. Shared
+  header and footer through the `(site)` route group. Prices come from one config file (`packages/config/src/plans.ts`)
+  and match the Stripe test prices.
+- **Positioning is now individual-first, with household optional.** Join is a two-step chooser, then sign-up, then
+  "Create your profile". The chosen plan carries through to checkout.
+- **Owner decisions (22 Nov):** no one-off programme purchases, ever; everything is included in the membership. The
+  comparison block keeps the illustrative A$19.99 / A$19 example prices (flag for the lawyer).
+- **Search engines:** `robots.txt`, `sitemap.xml`, canonical URLs, unique titles and descriptions, and JSON-LD on
+  workout and instructor pages. The test site stays **noindex**; set `NEXT_PUBLIC_SITE_INDEXABLE=1` and
+  `NEXT_PUBLIC_SITE_URL` on the production domain only.
+- **Public catalogue migration** `20261122090000_public_catalogue.sql` is written but **not applied yet**. It adds
+  instructor slugs and read-only `public_workouts` / `public_instructors` views (published AU workouts, adult coaches
+  only, junior coaches never named, no playback ids), plus `tests.run_public_catalogue_checks()`. Until it's
+  applied, the live workout and instructor pages show a "taking a moment to load" message.
+- **Known:** the domain test `server-copy` fails on a fresh install at `f531542` too: `_shared/domain.js` differs
+  from a fresh bundle. It is not caused by this change and was left alone (regenerating it would redeploy the
+  functions). Next.js 16.4.3 prints a security advisory during build; an upgrade needs owner approval.
 
 ## Latest (11 Nov 2026)
 - **Coach photos as profile pictures:** families see a "Coaches" row first in the picture picker (web and phone).

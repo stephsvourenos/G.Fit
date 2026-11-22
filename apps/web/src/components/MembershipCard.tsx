@@ -1,5 +1,6 @@
 "use client";
 
+import { load } from "@/lib/storage";
 import { useEffect, useState } from "react";
 import { hasStreamingAccess, type HouseholdEntitlement } from "@app/domain";
 import {
@@ -37,7 +38,12 @@ export function MembershipCard({
   const trialing = paid && entitlement?.status === "trialing";
   const [trialDays, setTrialDays] = useState(0);
   const [myPlan, setMyPlan] = useState<Plan>();
+  // The plan chosen on the website's join page carries through to checkout.
   const [plan, setPlan] = useState<Plan>("monthly");
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read once after mount (static-export friendly)
+    if (load<string>("pf.join.plan", "monthly") === "annual") setPlan("annual");
+  }, []);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string>();

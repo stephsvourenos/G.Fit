@@ -48,9 +48,9 @@ export default function ProfilePicker() {
         </p>
         {h.status === "needs-profiles" && (
           <div className="mt-8 max-w-md rounded-3xl bg-ink-2 p-6 ring-1 ring-white/10">
-            <div className="font-display text-2xl">Add your family</div>
-            <p className="mt-1 text-sm text-muted">Start with a profile for yourself, then one for each child. Children only need a nickname and age group.</p>
-            <Link href="/watch/profiles/" className="mt-4 inline-block rounded-full bg-coral px-5 py-2.5 font-semibold text-white">Add profiles</Link>
+            <div className="font-display text-2xl">Create your profile</div>
+            <p className="mt-1 text-sm text-muted">Start with a profile for yourself. If you like, add the people you live with later. Children only need a nickname and an age group.</p>
+            <Link href="/watch/profiles/" className="mt-4 inline-block rounded-full bg-coral px-5 py-2.5 font-semibold text-white">Create my profile</Link>
           </div>
         )}
         <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-5">

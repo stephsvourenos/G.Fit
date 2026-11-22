@@ -3,11 +3,16 @@ import { brand } from "@app/config";
 import { PrototypeBanner } from "@/components/PrototypeBanner";
 import { ErrorReporter } from "@/components/ErrorReporter";
 import { ReferralCapture } from "@/components/ReferralCapture";
+import { indexable, siteUrl } from "@/lib/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: `${brand.name} — family fitness streaming`, template: `%s · ${brand.name}` },
-  description: brand.tagline,
+  metadataBase: new URL(siteUrl),
+  title: { default: `${brand.name} — ${brand.tagline.replace(/\.$/, "")}`, template: `%s · ${brand.name}` },
+  description: `Fitness streaming with workouts from many instructors in one membership. ${brand.promise} Just for you, or for everyone at home.`,
+  applicationName: brand.name,
+  openGraph: { siteName: brand.name, locale: "en_AU", type: "website" },
+  robots: indexable ? { index: true, follow: true } : { index: false, follow: false },
 };
 
 export const viewport: Viewport = { themeColor: "#15131c" };

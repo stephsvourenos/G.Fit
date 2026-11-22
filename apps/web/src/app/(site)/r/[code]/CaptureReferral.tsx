@@ -17,8 +17,8 @@ export function CaptureReferral({ code }: { code: string }) {
   }, [code]);
   return (
     <div className="mt-8">
-      <Link href="/join/" className="inline-block rounded-full bg-coral px-7 py-3.5 font-semibold text-white hover:bg-coral-2">Start your family membership</Link>
-      <p className="mt-3 text-xs text-ink/50">Referral code <b>{code}</b> saved for 30 days on this device.</p>
+      <Link href="/join/" className="inline-block rounded-full bg-coral px-7 py-3.5 font-semibold text-white hover:bg-coral-2">Start your free trial</Link>
+      <p className="mt-3 text-xs text-muted">Referral code <b>{code}</b> saved for 30 days on this device.</p>
     </div>
   );
 }

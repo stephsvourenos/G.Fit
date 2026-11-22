@@ -4,7 +4,8 @@
  */
 export const brand = {
   name: process.env.NEXT_PUBLIC_BRAND_NAME ?? "G.Fit",
-  tagline: "Move together. Every age, every day.",
+  tagline: "Find your kind of fit.",
+  promise: "One membership. More instructors. More ways to move.",
   supportEmail: "support@example.com",
   defaultCurrency: "AUD" as const,
   defaultCountry: "AU" as const,
