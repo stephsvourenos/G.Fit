@@ -29,14 +29,14 @@ alter table public.programme_workouts enable row level security;
 
 -- Members see published programmes (and their steps); content staff manage everything.
 create policy programmes_member_read on public.programmes for select to authenticated
-  using (state = 'published' or public.has_staff_role('{admin,content_editor}'));
+  using (state = 'published' or private.has_staff_role('{admin,content_editor}'));
 create policy programmes_staff_write on public.programmes for all to authenticated
-  using (public.has_staff_role('{admin,content_editor}')) with check (public.has_staff_role('{admin,content_editor}'));
+  using (private.has_staff_role('{admin,content_editor}')) with check (private.has_staff_role('{admin,content_editor}'));
 create policy programme_workouts_member_read on public.programme_workouts for select to authenticated
   using (exists (select 1 from public.programmes p where p.id = programme_id
-                 and (p.state = 'published' or public.has_staff_role('{admin,content_editor}'))));
+                 and (p.state = 'published' or private.has_staff_role('{admin,content_editor}'))));
 create policy programme_workouts_staff_write on public.programme_workouts for all to authenticated
-  using (public.has_staff_role('{admin,content_editor}')) with check (public.has_staff_role('{admin,content_editor}'));
+  using (private.has_staff_role('{admin,content_editor}')) with check (private.has_staff_role('{admin,content_editor}'));
 
 -- Publishing rule, enforced in the database as well as the admin screen:
 -- a programme can only go live with at least one published workout in it.
@@ -62,7 +62,7 @@ create trigger programmes_publish_gate before insert or update on public.program
 create or replace function public.set_programme_workouts(p_programme uuid, p_workouts uuid[])
 returns void language plpgsql security invoker set search_path = '' as $$
 begin
-  if not public.has_staff_role('{admin,content_editor}') then raise exception 'Only content staff can change programmes'; end if;
+  if not private.has_staff_role('{admin,content_editor}') then raise exception 'Only content staff can change programmes'; end if;
   if (select count(distinct x) from unnest(p_workouts) x) <> cardinality(p_workouts) then
     raise exception 'A workout can only appear once in a programme';
   end if;

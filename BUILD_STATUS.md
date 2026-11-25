@@ -1,9 +1,36 @@
 # BUILD_STATUS
 
-_Last updated: 22 Nov 2026 — new public website (stages 1–4 of `docs/WEBSITE_INTEGRATION_PLAN.md`)_
+_Last updated: 26 Nov 2026 — Creator Acquisition CRM, Phase 1 (on the test system)_
 
-## Test suites (22 Nov 2026)
-domain 83/83 · RLS 33/33 · journey 19/19 · finance 38/38 · account closing 8/8 · coach photos 9/9 · public catalogue 11/11
+## Test suites (26 Nov 2026, on gfit-dev-sydney)
+domain 113/113 · RLS 33/33 · journey 19/19 · finance 38/38 · account closing 8/8 · coach photos 9/9 · programmes 14/14 · **CRM 46/46**
+(public catalogue 11/11 on 22 Nov)
+
+## Latest (26 Nov 2026): Creator Acquisition CRM — Phase 1
+- **Admin → Creator Acquisition**: Overview (targets, pace, conversion, categories, risks), Today's Tasks (replies →
+  follow-ups → best new creators, keyboard shortcuts), All Prospects (filters, sort by score/confidence, bulk
+  assign/tag/stage, admin-only audited CSV export), prospect profile (11 tabs, timeline, provenance), Pipeline (drag and
+  drop + table), Outreach, Import (CSV + multi-sheet XLSX, column mapping, duplicate review, error report, history),
+  Analytics (cohort funnel by 9 dimensions, objections, reasons lost), Templates (17 defaults, versions, merge fields),
+  Settings (targets, queue, scoring, categories, stages). Applications / Onboarding / Partnerships pages say what
+  arrives in Phases 2–3.
+- **Rules in the database**: unknown stays unknown; imports never touch stage, notes, history, assignment or
+  do-not-contact; 🔒 system stages need a real event or an audited admin override; do-not-contact kept as SHA-256
+  fingerprints (survives deletion and re-import); outreach logged only on “I've sent it”; email needs the address
+  confirmed as published for business enquiries; same-channel duplicate guard; funnels count each prospect once.
+- **New role `recruiter`** (CRM only; redirected away from other admin pages). Export, settings, overrides, clearing
+  DNC and deleting prospects are admin-only.
+- Shared rules in `packages/domain/src/crm` (imported as `@app/domain/crm`, not in the Deno bundle): field catalogue,
+  CSV/XLSX readers (no library; formulas never evaluated), value parsing, duplicate keys, scoring, templates, import
+  planning. Data layer `apps/web/src/lib/crm.ts`; screens `apps/web/src/app/admin/acquisition/`.
+- Migrations (applied 26 Nov): `20261122100000_programmes` (fixed: it called `public.has_staff_role`, which moved to
+  `private`), `20261125090000_crm_recruiter_role`, `20261125091000–091300_crm_1…4` (one change split in four parts to
+  fit the connector; the live definitions were fingerprint-checked against the files).
+- Load test (local Postgres 17, 7,500 fictional prospects): import ≈1 s per 500 rows, dashboard 0.46 s, queue <0.5 s.
+- Import guide for the owner: `docs/CRM_IMPORT_GUIDE.md`.
+- Not yet: Phases 2–4 (applications, invitation links, onboarding events, nominations, partners, waiting list,
+  marketing kits, forecasting, AI prompt helpers). No profile photos of prospects (would need scraping). Email sending
+  waits for Resend; emails open in the owner's own email app. **Real prospect data waits for the production database.**
 
 ## Latest (22 Nov 2026, afternoon): programmes
 - **Programmes (stage 5)**, all included in the membership, with no price field on purpose. Admin → Programmes:

@@ -8,7 +8,7 @@ import { ROLE_LABEL, useStaffSession } from "@/lib/staff";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 
 /** Pages that already run on the real database; the rest still show sample figures. */
-const LIVE_PAGES = ["/admin/content/", "/admin/programmes/", "/admin/audit/", "/admin/playback/", "/admin/subscribers/", "/admin/royalties/", "/admin/payouts/", "/admin/creators/", "/admin/referrals/", "/admin/reports/", "/admin/settings/", "/admin/pricing/", "/admin/emails/", "/admin/health/", "/admin/uploads/", "/admin/ledger/", "/admin/"];
+const LIVE_PAGES = ["/admin/acquisition/", "/admin/acquisition/prospects/", "/admin/acquisition/prospect/", "/admin/acquisition/pipeline/", "/admin/acquisition/today/", "/admin/acquisition/outreach/", "/admin/acquisition/applications/", "/admin/acquisition/onboarding/", "/admin/acquisition/partnerships/", "/admin/acquisition/analytics/", "/admin/acquisition/templates/", "/admin/acquisition/settings/", "/admin/acquisition/import/", "/admin/content/", "/admin/programmes/", "/admin/audit/", "/admin/playback/", "/admin/subscribers/", "/admin/royalties/", "/admin/payouts/", "/admin/creators/", "/admin/referrals/", "/admin/reports/", "/admin/settings/", "/admin/pricing/", "/admin/emails/", "/admin/health/", "/admin/uploads/", "/admin/ledger/", "/admin/"];
 
 export const ADMIN_NAV: Array<[string, string, string?]> = [
   ["/admin/", "Overview"],
@@ -30,6 +30,22 @@ export const ADMIN_NAV: Array<[string, string, string?]> = [
   ["/admin/settings/", "Configuration"],
 ];
 
+/** Creator Acquisition: the creator recruitment CRM (admins and recruiters). */
+export const ACQUISITION_NAV: Array<[string, string, string?]> = [
+  ["/admin/acquisition/", "Overview"],
+  ["/admin/acquisition/today/", "Today's Tasks"],
+  ["/admin/acquisition/prospects/", "All Prospects"],
+  ["/admin/acquisition/pipeline/", "Recruitment Pipeline"],
+  ["/admin/acquisition/outreach/", "Outreach"],
+  ["/admin/acquisition/import/", "Import prospects"],
+  ["/admin/acquisition/applications/", "Applications", "Phase 2"],
+  ["/admin/acquisition/onboarding/", "Onboarding", "Phase 2"],
+  ["/admin/acquisition/partnerships/", "Partnerships", "Phase 3"],
+  ["/admin/acquisition/analytics/", "Recruitment Analytics"],
+  ["/admin/acquisition/templates/", "Templates"],
+  ["/admin/acquisition/settings/", "Settings"],
+];
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
@@ -38,6 +54,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (staff.state === "signed-out") router.replace(`/account/sign-in/?next=${encodeURIComponent(path)}`);
   }, [staff.state, path, router]);
+
+  // Recruiters only work in the creator CRM: send them there from other admin pages.
+  useEffect(() => {
+    const crmOnly = staff.roles.length > 0 && staff.roles.every((r) => r === "recruiter");
+    if (crmOnly && !path.startsWith("/admin/acquisition")) router.replace("/admin/acquisition/");
+  }, [staff.roles, path, router]);
 
   if (staff.state === "loading" || staff.state === "signed-out") {
     return <div className="grid flex-1 place-items-center bg-page text-ink/60">Checking your access…</div>;
@@ -57,6 +79,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const here = `${path.replace(/\/$/, "")}/`;
+  const showCrm = staff.roles.some((r) => r === "admin" || r === "recruiter");
+  const showMain = staff.roles.some((r) => r !== "recruiter");
   // Compare with a trailing slash either way (Next may report "/admin/x" or "/admin/x/").
   const sample = supabaseConfigured && !LIVE_PAGES.includes(`${path.replace(/\/$/, "")}/`);
   return (
@@ -66,16 +91,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <Link href="/admin/" className="font-display text-lg font-semibold">{brand.name} <span className="text-coral">Admin</span></Link>
         </div>
         <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:overflow-visible">
-          {ADMIN_NAV.map(([href, label, phase]) => (
-            <Link
-              key={href}
-              href={href}
-              className={`flex shrink-0 items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm ${path === href ? "bg-ink text-paper" : "text-ink/75 hover:bg-ink/5"}`}
-            >
-              <span>{label}</span>
-              {phase && <span className="rounded bg-ink/10 px-1.5 text-[10px] font-semibold text-ink/60">{phase}</span>}
-            </Link>
-          ))}
+          {showMain && ADMIN_NAV.map(([href, label, phase]) => <NavLink key={href} href={href} label={label} phase={phase} active={here === href} />)}
+          {showCrm && (
+            <>
+              <div className="hidden px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wide text-ink/45 lg:block">Creator Acquisition</div>
+              {ACQUISITION_NAV.map(([href, label, phase]) => (
+                <NavLink key={href} href={href} label={label} phase={phase} active={here === href || (href === "/admin/acquisition/prospects/" && here === "/admin/acquisition/prospect/")} />
+              ))}
+            </>
+          )}
         </nav>
         <div className="hidden px-5 py-4 text-xs text-ink/50 lg:block">
           Signed in as <b>{staff.email}</b> ({staff.roles.map((r) => ROLE_LABEL[r]).join(", ")}).
@@ -98,6 +122,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
     </div>
+  );
+}
+
+function NavLink({ href, label, phase, active }: { href: string; label: string; phase?: string; active: boolean }) {
+  return (
+    <Link href={href} className={`flex shrink-0 items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm ${active ? "bg-ink text-paper" : "text-ink/75 hover:bg-ink/5"}`}>
+      <span>{label}</span>
+      {phase && <span className={`rounded px-1.5 text-[10px] font-semibold ${active ? "bg-paper/20 text-paper" : "bg-ink/10 text-ink/60"}`}>{phase}</span>}
+    </Link>
   );
 }
 

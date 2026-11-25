@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, supabaseConfigured } from "./supabase";
 
-export type StaffRole = "admin" | "content_editor" | "finance" | "support";
+export type StaffRole = "admin" | "content_editor" | "finance" | "support" | "recruiter";
 
 export interface StaffSession {
   state: "loading" | "signed-out" | "no-access" | "ok";
@@ -54,4 +54,5 @@ export const ROLE_LABEL: Record<StaffRole, string> = {
   content_editor: "Content editor",
   finance: "Finance",
   support: "Support",
+  recruiter: "Recruiter",
 };
